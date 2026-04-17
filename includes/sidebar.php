@@ -66,21 +66,9 @@
           <span class="hide-menu">Users</span>
         </li>
         <li class="sidebar-item">
-          <a class="sidebar-link<?= $activePage === 'students' ? ' active' : '' ?>" href="<?= htmlspecialchars($navBasePath) ?>students/list.php" aria-expanded="false">
-            <iconify-icon icon="solar:user-check-line-duotone"></iconify-icon>
-            <span class="hide-menu">Students</span>
-          </a>
-        </li>
-        <li class="sidebar-item">
           <a class="sidebar-link<?= $activePage === 'instructors' ? ' active' : '' ?>" href="<?= htmlspecialchars($navBasePath) ?>instructors/list.php" aria-expanded="false">
-            <iconify-icon icon="solar:users-group-line-duotone"></iconify-icon>
+            <iconify-icon icon="solar:user-check-line-duotone"></iconify-icon>
             <span class="hide-menu">Instructors</span>
-          </a>
-        </li>
-        <li class="sidebar-item">
-          <a class="sidebar-link<?= $activePage === 'enrollments' ? ' active' : '' ?>" href="<?= htmlspecialchars($navBasePath) ?>enrollments/list.php" aria-expanded="false">
-            <iconify-icon icon="solar:users-line-duotone"></iconify-icon>
-            <span class="hide-menu">Enrollments</span>
           </a>
         </li>
 

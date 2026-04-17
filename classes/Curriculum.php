@@ -177,7 +177,9 @@ class Curriculum extends Database {
                     id,
                     subject_code,
                     subject_name,
-                    credit_hours,
+                    lec_credits,
+                    lab_credits,
+                    total_credits,
                     year_level,
                     semester,
                     created_at
@@ -192,17 +194,18 @@ class Curriculum extends Database {
         return $query->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function addSubject($curriculum_id, $subject_code, $subject_name, $credit_hours, $year_level, $semester) {
+    public function addSubject($curriculum_id, $subject_code, $subject_name, $lec_credits, $lab_credits, $year_level, $semester) {
         $conn = $this->connect();
 
         $sql = "INSERT INTO subjects 
-                (subject_code, subject_name, credit_hours, curriculum_id, year_level, semester)
-                VALUES (:subject_code, :subject_name, :credit_hours, :curriculum_id, :year_level, :semester)";
+                (subject_code, subject_name, lec_credits, lab_credits, curriculum_id, year_level, semester)
+                VALUES (:subject_code, :subject_name, :lec_credits, :lab_credits, :curriculum_id, :year_level, :semester)";
 
         $query = $conn->prepare($sql);
         $query->bindParam(':subject_code', $subject_code);
         $query->bindParam(':subject_name', $subject_name);
-        $query->bindParam(':credit_hours', $credit_hours, PDO::PARAM_INT);
+        $query->bindParam(':lec_credits', $lec_credits, PDO::PARAM_INT);
+        $query->bindParam(':lab_credits', $lab_credits, PDO::PARAM_INT);
         $query->bindParam(':curriculum_id', $curriculum_id, PDO::PARAM_INT);
         $query->bindParam(':year_level', $year_level, PDO::PARAM_INT);
         $query->bindParam(':semester', $semester, PDO::PARAM_INT);
@@ -210,13 +213,14 @@ class Curriculum extends Database {
         return $query->execute();
     }
 
-    public function updateSubject($subject_id, $subject_code, $subject_name, $credit_hours, $year_level, $semester) {
+    public function updateSubject($subject_id, $subject_code, $subject_name, $lec_credits, $lab_credits, $year_level, $semester) {
         $conn = $this->connect();
 
         $sql = "UPDATE subjects SET 
                 subject_code = :subject_code,
                 subject_name = :subject_name,
-                credit_hours = :credit_hours,
+                lec_credits = :lec_credits,
+                lab_credits = :lab_credits,
                 year_level = :year_level,
                 semester = :semester
                 WHERE id = :subject_id";
@@ -225,7 +229,8 @@ class Curriculum extends Database {
         $query->bindParam(':subject_id', $subject_id, PDO::PARAM_INT);
         $query->bindParam(':subject_code', $subject_code);
         $query->bindParam(':subject_name', $subject_name);
-        $query->bindParam(':credit_hours', $credit_hours, PDO::PARAM_INT);
+        $query->bindParam(':lec_credits', $lec_credits, PDO::PARAM_INT);
+        $query->bindParam(':lab_credits', $lab_credits, PDO::PARAM_INT);
         $query->bindParam(':year_level', $year_level, PDO::PARAM_INT);
         $query->bindParam(':semester', $semester, PDO::PARAM_INT);
 

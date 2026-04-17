@@ -78,9 +78,19 @@ if (!$curriculumData) {
               <label for="subjectName" class="form-label">Subject Name</label>
               <input type="text" class="form-control" id="subjectName" name="subject_name" required>
             </div>
-            <div class="mb-3">
-              <label for="creditHours" class="form-label">Credit Hours</label>
-              <input type="number" class="form-control" id="creditHours" name="credit_hours" min="1" max="10" required>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="lecCredits" class="form-label">Lecture Credits</label>
+                  <input type="number" class="form-control" id="lecCredits" name="lec_credits" min="0" max="10" value="0">
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="labCredits" class="form-label">Lab Credits</label>
+                  <input type="number" class="form-control" id="labCredits" name="lab_credits" min="0" max="10" value="0">
+                </div>
+              </div>
             </div>
             <div class="mb-3">
               <label for="yearLevel" class="form-label">Year Level</label>
@@ -98,7 +108,7 @@ if (!$curriculumData) {
                 <option value="">Select semester</option>
                 <option value="1">1st Semester</option>
                 <option value="2">2nd Semester</option>
-                <option value="3">Summer Semester</option>
+                <option value="3">Summer</option>
               </select>
             </div>
           </div>
@@ -130,9 +140,19 @@ if (!$curriculumData) {
               <label for="editSubjectName" class="form-label">Subject Name</label>
               <input type="text" class="form-control" id="editSubjectName" name="subject_name" required>
             </div>
-            <div class="mb-3">
-              <label for="editCreditHours" class="form-label">Credit Hours</label>
-              <input type="number" class="form-control" id="editCreditHours" name="credit_hours" min="1" max="10" required>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="editLecCredits" class="form-label">Lecture Credits</label>
+                  <input type="number" class="form-control" id="editLecCredits" name="lec_credits" min="0" max="10" value="0">
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="editLabCredits" class="form-label">Lab Credits</label>
+                  <input type="number" class="form-control" id="editLabCredits" name="lab_credits" min="0" max="10" value="0">
+                </div>
+              </div>
             </div>
             <div class="mb-3">
               <label for="editYearLevel" class="form-label">Year Level</label>
@@ -150,7 +170,7 @@ if (!$curriculumData) {
                 <option value="">Select semester</option>
                 <option value="1">1st Semester</option>
                 <option value="2">2nd Semester</option>
-                <option value="3">Summer Semester</option>
+                <option value="3">Summer</option>
               </select>
             </div>
           </div>
@@ -234,17 +254,22 @@ if (!$curriculumData) {
           if (sem1Subjects.length > 0) {
             html += '<div class="table-responsive">';
             html += '<table class="table table-sm table-hover">';
-            html += '<thead><tr><th>Code</th><th>Subject</th><th>Credits</th></tr></thead>';
+            html += '<thead><tr><th>Code</th><th>Subject</th><th>Lec</th><th>Lab</th><th>Total</th></tr></thead>';
             html += '<tbody>';
-            var sem1Total = 0;
+            var sem1LecTotal = 0, sem1LabTotal = 0, sem1Total = 0;
             sem1Subjects.forEach(function(subject) {
+              var total = parseInt(subject.total_credits);
               html += '<tr>';
-              html += '<td><a href="#" class="btn-edit-subject" data-id="' + subject.id + '" data-code="' + escapeHtml(subject.subject_code) + '" data-name="' + escapeHtml(subject.subject_name) + '" data-credits="' + subject.credit_hours + '" data-year="' + subject.year_level + '" data-semester="' + subject.semester + '"><strong style="color: #007bff; cursor: pointer;">' + escapeHtml(subject.subject_code) + '</strong></a></td>';
+              html += '<td><a href="#" class="btn-edit-subject" data-id="' + subject.id + '" data-code="' + escapeHtml(subject.subject_code) + '" data-name="' + escapeHtml(subject.subject_name) + '" data-lec="' + subject.lec_credits + '" data-lab="' + subject.lab_credits + '" data-year="' + subject.year_level + '" data-semester="' + subject.semester + '"><strong style="color: #007bff; cursor: pointer;">' + escapeHtml(subject.subject_code) + '</strong></a></td>';
               html += '<td>' + escapeHtml(subject.subject_name) + '</td>';
-              html += '<td>' + subject.credit_hours + '</td>';
+              html += '<td>' + subject.lec_credits + '</td>';
+              html += '<td>' + subject.lab_credits + '</td>';
+              html += '<td><strong>' + total + '</strong></td>';
               html += '</tr>';
-              sem1Total += parseInt(subject.credit_hours);
-              grandTotal += parseInt(subject.credit_hours);
+              sem1LecTotal += parseInt(subject.lec_credits);
+              sem1LabTotal += parseInt(subject.lab_credits);
+              sem1Total += total;
+              grandTotal += total;
             });
 
             // Pad with empty rows to match sem2 if needed
@@ -253,10 +278,12 @@ if (!$curriculumData) {
               html += '<td>&nbsp;</td>';
               html += '<td>&nbsp;</td>';
               html += '<td>&nbsp;</td>';
+              html += '<td>&nbsp;</td>';
+              html += '<td>&nbsp;</td>';
               html += '</tr>';
             }
 
-            html += '<tr class="table-active"><td colspan="2"><strong>Subtotal</strong></td><td><strong>' + sem1Total + '</strong></td></tr>';
+            html += '<tr class="table-active"><td colspan="2"><strong>Subtotal</strong></td><td><strong>' + sem1LecTotal + '</strong></td><td><strong>' + sem1LabTotal + '</strong></td><td><strong>' + sem1Total + '</strong></td></tr>';
             html += '</tbody>';
             html += '</table>';
             html += '</div>';
@@ -271,17 +298,22 @@ if (!$curriculumData) {
           if (sem2Subjects.length > 0) {
             html += '<div class="table-responsive">';
             html += '<table class="table table-sm table-hover">';
-            html += '<thead><tr><th>Code</th><th>Subject</th><th>Credits</th></tr></thead>';
+            html += '<thead><tr><th>Code</th><th>Subject</th><th>Lec</th><th>Lab</th><th>Total</th></tr></thead>';
             html += '<tbody>';
-            var sem2Total = 0;
+            var sem2LecTotal = 0, sem2LabTotal = 0, sem2Total = 0;
             sem2Subjects.forEach(function(subject) {
+              var total = parseInt(subject.total_credits);
               html += '<tr>';
-              html += '<td><a href="#" class="btn-edit-subject" data-id="' + subject.id + '" data-code="' + escapeHtml(subject.subject_code) + '" data-name="' + escapeHtml(subject.subject_name) + '" data-credits="' + subject.credit_hours + '" data-year="' + subject.year_level + '" data-semester="' + subject.semester + '"><strong style="color: #007bff; cursor: pointer;">' + escapeHtml(subject.subject_code) + '</strong></a></td>';
+              html += '<td><a href="#" class="btn-edit-subject" data-id="' + subject.id + '" data-code="' + escapeHtml(subject.subject_code) + '" data-name="' + escapeHtml(subject.subject_name) + '" data-lec="' + subject.lec_credits + '" data-lab="' + subject.lab_credits + '" data-year="' + subject.year_level + '" data-semester="' + subject.semester + '"><strong style="color: #007bff; cursor: pointer;">' + escapeHtml(subject.subject_code) + '</strong></a></td>';
               html += '<td>' + escapeHtml(subject.subject_name) + '</td>';
-              html += '<td>' + subject.credit_hours + '</td>';
+              html += '<td>' + subject.lec_credits + '</td>';
+              html += '<td>' + subject.lab_credits + '</td>';
+              html += '<td><strong>' + total + '</strong></td>';
               html += '</tr>';
-              sem2Total += parseInt(subject.credit_hours);
-              grandTotal += parseInt(subject.credit_hours);
+              sem2LecTotal += parseInt(subject.lec_credits);
+              sem2LabTotal += parseInt(subject.lab_credits);
+              sem2Total += total;
+              grandTotal += total;
             });
 
             // Pad with empty rows to match sem1 if needed
@@ -290,10 +322,12 @@ if (!$curriculumData) {
               html += '<td>&nbsp;</td>';
               html += '<td>&nbsp;</td>';
               html += '<td>&nbsp;</td>';
+              html += '<td>&nbsp;</td>';
+              html += '<td>&nbsp;</td>';
               html += '</tr>';
             }
 
-            html += '<tr class="table-active"><td colspan="2"><strong>Subtotal</strong></td><td><strong>' + sem2Total + '</strong></td></tr>';
+            html += '<tr class="table-active"><td colspan="2"><strong>Subtotal</strong></td><td><strong>' + sem2LecTotal + '</strong></td><td><strong>' + sem2LabTotal + '</strong></td><td><strong>' + sem2Total + '</strong></td></tr>';
             html += '</tbody>';
             html += '</table>';
             html += '</div>';
@@ -304,23 +338,28 @@ if (!$curriculumData) {
 
           // Summer semester below
           if (sem3Subjects.length > 0) {
-            html += '<div class="col-12">';
-            html += '<h6 class="mb-3 text-center">Summer Semester</h6>';
+            html += '<div class="col-6">';
+            html += '<h6 class="mb-3 text-center">Summer</h6>';
             html += '<div class="table-responsive">';
             html += '<table class="table table-sm table-hover">';
-            html += '<thead><tr><th>Code</th><th>Subject</th><th>Credits</th></tr></thead>';
+            html += '<thead><tr><th>Code</th><th>Subject</th><th>Lec</th><th>Lab</th><th>Total</th></tr></thead>';
             html += '<tbody>';
-            var sem3Total = 0;
+            var sem3LecTotal = 0, sem3LabTotal = 0, sem3Total = 0;
             sem3Subjects.forEach(function(subject) {
+              var total = parseInt(subject.total_credits);
               html += '<tr>';
-              html += '<td><a href="#" class="btn-edit-subject" data-id="' + subject.id + '" data-code="' + escapeHtml(subject.subject_code) + '" data-name="' + escapeHtml(subject.subject_name) + '" data-credits="' + subject.credit_hours + '" data-year="' + subject.year_level + '" data-semester="' + subject.semester + '"><strong style="color: #007bff; cursor: pointer;">' + escapeHtml(subject.subject_code) + '</strong></a></td>';
+              html += '<td><a href="#" class="btn-edit-subject" data-id="' + subject.id + '" data-code="' + escapeHtml(subject.subject_code) + '" data-name="' + escapeHtml(subject.subject_name) + '" data-lec="' + subject.lec_credits + '" data-lab="' + subject.lab_credits + '" data-year="' + subject.year_level + '" data-semester="' + subject.semester + '"><strong style="color: #007bff; cursor: pointer;">' + escapeHtml(subject.subject_code) + '</strong></a></td>';
               html += '<td>' + escapeHtml(subject.subject_name) + '</td>';
-              html += '<td>' + subject.credit_hours + '</td>';
+              html += '<td>' + subject.lec_credits + '</td>';
+              html += '<td>' + subject.lab_credits + '</td>';
+              html += '<td><strong>' + total + '</strong></td>';
               html += '</tr>';
-              sem3Total += parseInt(subject.credit_hours);
-              grandTotal += parseInt(subject.credit_hours);
+              sem3LecTotal += parseInt(subject.lec_credits);
+              sem3LabTotal += parseInt(subject.lab_credits);
+              sem3Total += total;
+              grandTotal += total;
             });
-            html += '<tr class="table-active"><td colspan="2"><strong>Subtotal</strong></td><td><strong>' + sem3Total + '</strong></td></tr>';
+            html += '<tr class="table-active"><td colspan="2"><strong>Subtotal</strong></td><td><strong>' + sem3LecTotal + '</strong></td><td><strong>' + sem3LabTotal + '</strong></td><td><strong>' + sem3Total + '</strong></td></tr>';
             html += '</tbody>';
             html += '</table>';
             html += '</div>';
@@ -364,7 +403,8 @@ if (!$curriculumData) {
             curriculum_id: curriculumId,
             subject_code: $('#subjectCode').val(),
             subject_name: $('#subjectName').val(),
-            credit_hours: $('#creditHours').val(),
+            lec_credits: $('#lecCredits').val(),
+            lab_credits: $('#labCredits').val(),
             year_level: $('#yearLevel').val(),
             semester: $('#semester').val()
           };
@@ -390,14 +430,16 @@ if (!$curriculumData) {
           var subjectId = $(this).data('id');
           var subjectCode = $(this).data('code');
           var subjectName = $(this).data('name');
-          var creditHours = $(this).data('credits');
+          var lecCredits = $(this).data('lec');
+          var labCredits = $(this).data('lab');
           var yearLevel = $(this).data('year');
           var semester = $(this).data('semester');
 
           $('#editSubjectId').val(subjectId);
           $('#editSubjectCode').val(subjectCode);
           $('#editSubjectName').val(subjectName);
-          $('#editCreditHours').val(creditHours);
+          $('#editLecCredits').val(lecCredits);
+          $('#editLabCredits').val(labCredits);
           $('#editYearLevel').val(yearLevel);
           $('#editSemester').val(semester);
 
@@ -414,7 +456,8 @@ if (!$curriculumData) {
             subject_id: $('#editSubjectId').val(),
             subject_code: $('#editSubjectCode').val(),
             subject_name: $('#editSubjectName').val(),
-            credit_hours: $('#editCreditHours').val(),
+            lec_credits: $('#editLecCredits').val(),
+            lab_credits: $('#editLabCredits').val(),
             year_level: $('#editYearLevel').val(),
             semester: $('#editSemester').val()
           };
