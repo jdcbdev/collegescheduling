@@ -36,21 +36,15 @@
           <span class="hide-menu">Academic</span>
         </li>
         <li class="sidebar-item">
-          <a class="sidebar-link<?= $activePage === 'programs' ? ' active' : '' ?>" href="<?= htmlspecialchars($navBasePath) ?>academic/programs.php" aria-expanded="false">
-            <iconify-icon icon="solar:notebook-bookmark-broken"></iconify-icon>
-            <span class="hide-menu">Programs</span>
-          </a>
-        </li>
-        <li class="sidebar-item">
-          <a class="sidebar-link<?= $activePage === 'curriculum' ? ' active' : '' ?>" href="<?= htmlspecialchars($navBasePath) ?>curriculum/list.php" aria-expanded="false">
-            <iconify-icon icon="solar:layout-list-line-duotone"></iconify-icon>
+          <a class="sidebar-link<?= $activePage === 'curriculum' ? ' active' : '' ?>" href="<?= htmlspecialchars($navBasePath) ?>academic/curriculum.php" aria-expanded="false">
+            <iconify-icon icon="solar:diploma-line-duotone"></iconify-icon>
             <span class="hide-menu">Curriculum</span>
           </a>
         </li>
         <li class="sidebar-item">
-          <a class="sidebar-link<?= $activePage === 'subjects' ? ' active' : '' ?>" href="<?= htmlspecialchars($navBasePath) ?>settings/subjects.php" aria-expanded="false">
-            <iconify-icon icon="solar:book-line-duotone"></iconify-icon>
-            <span class="hide-menu">Subjects</span>
+          <a class="sidebar-link<?= $activePage === 'programs' ? ' active' : '' ?>" href="<?= htmlspecialchars($navBasePath) ?>academic/programs.php" aria-expanded="false">
+            <iconify-icon icon="solar:notebook-bookmark-broken"></iconify-icon>
+            <span class="hide-menu">Programs</span>
           </a>
         </li>
 
