@@ -1,0 +1,226 @@
+/* Android palette and status colors */
+:root {
+    --purple-200: #FFBB86FC;
+    --purple-500: #FF6200EE;
+    --purple-700: #FF3700B3;
+    --teal-200: #FF03DAC5;
+    --teal-700: #FF018786;
+    --black: #29343d;
+    --white: #FFFFFFFF;
+    --status-approved: #3f9e44;
+    --status-pending: #FFC107;
+    --status-denied: #F44336;
+    --wmsu: #005a32;
+    --wmsu-light: #74c476;
+    --status-completed: #2196F3;
+    --status-cancelled: #607D8B;
+    --green: #3f9e44;
+}
+
+.my-bg-color {
+    background-color: var(--wmsu) !important;
+}
+
+.my-bg-color-gray{
+    background-color: var(--status-cancelled) !important;
+}
+
+.request-card .status-badge,
+.request-card .badge {
+    color: var(--white) !important;
+}
+
+.request-card .status-pending {
+    background-color: var(--status-pending) !important;
+    border-color: var(--status-pending) !important;
+}
+
+.request-card .status-approved {
+    background-color: var(--status-approved) !important;
+    border-color: var(--status-approved) !important;
+}
+
+.request-card .status-completed {
+    background-color: var(--status-completed) !important;
+    border-color: var(--status-completed) !important;
+}
+
+.request-card .status-denied {
+    background-color: var(--status-denied) !important;
+    border-color: var(--status-denied) !important;
+}
+
+.request-card .status-cancelled {
+    background-color: var(--status-cancelled) !important;
+    border-color: var(--status-cancelled) !important;
+}
+
+.request-card .btn-cancel-deny {
+    border: 1px solid #adb5bd;
+    color: var(--wmsu);
+    background-color: transparent;
+}
+
+.request-card .btn-cancel-deny:hover,
+.request-card .btn-cancel-deny:focus,
+.request-card .btn-cancel-deny:active {
+    border-color: var(--wmsu-light);
+    color: var(--white);
+    background-color: var(--wmsu-light);
+}
+
+.request-card .btn-approve-wmsu {
+    background-color: var(--wmsu);
+    border-color: var(--wmsu);
+    color: var(--white);
+}
+
+.request-card .btn-approve-wmsu:hover,
+.request-card .btn-approve-wmsu:focus,
+.request-card .btn-approve-wmsu:active {
+    background-color: var(--wmsu-light);
+    border-color: var(--wmsu-light);
+    color: var(--white);
+}
+
+.request-card .btn-scan-timeout {
+    background-color: var(--wmsu);
+    border-color: var(--wmsu);
+    color: var(--white);
+}
+
+.request-card .btn-scan-timeout:hover,
+.request-card .btn-scan-timeout:focus,
+.request-card .btn-scan-timeout:active {
+    background-color: #d83a2f;
+    border-color: #d83a2f;
+    color: var(--white);
+}
+
+.request-card .btn-scan-timein {
+    background-color: var(--green);
+    border-color: var(--green);
+    color: var(--white);
+}
+
+.request-card .btn-scan-timein:hover,
+.request-card .btn-scan-timein:focus,
+.request-card .btn-scan-timein:active {
+    background-color: #3f9e44;
+    border-color: #3f9e44;
+    color: var(--white);
+}
+
+.request-card .cancel-request-btn,
+.request-card .approve-request-btn,
+.request-card .decline-request-btn {
+    text-transform: uppercase;
+}
+
+.request-card .approve-request-btn,
+.request-card .decline-request-btn {
+    min-width: 100px;
+}
+
+.btn-cancel-all{
+    background-color: var(--white);
+    color: var(--wmsu);
+    border-color: var(--wmsu);
+}
+
+@media (max-width: 767.98px) {
+    .request-action-buttons {
+        gap: 0.5rem !important;
+    }
+
+    .request-action-buttons .approve-request-btn,
+    .request-action-buttons .decline-request-btn {
+        width: 50%;
+        max-width: 50%;
+        flex: 0 0 50%;
+        min-width: 0;
+    }
+}
+
+/* Responsive New Request button: show plus sign on mobile */
+@media (max-width: 575.98px) {
+    .new-request-btn-responsive {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+        min-width: 2.5rem;
+        width: 2.5rem;
+        text-indent: -9999px;
+        position: relative;
+    }
+    .new-request-btn-responsive::after {
+        content: '+';
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 1.5rem;
+        color: #fff;
+        text-indent: 0;
+    }
+}
+.login-logo{
+    max-width: 30%;
+    height: auto;
+    min-width: 100px;
+    margin-bottom: 16px;
+}
+
+.app-header, #main-wrapper[data-layout=vertical][data-sidebar-position=fixed] .left-sidebar{
+    top: 0;
+}
+
+.body-wrapper .body-wrapper-inner{
+    margin-top: 66px;
+}
+
+.brand-logo{
+    padding: 12px 16px;
+}
+
+.content-page{
+    max-width: none !important;
+}
+
+.card, .card-body{
+    color: #29343d;
+}
+
+.table > :not(caption) > * > * {
+    color: #29343d
+}
+
+.page-analytics .chart-box {
+    min-height: 330px;
+}
+
+.page-analytics .loading-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.75);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+    border-radius: 0.5rem;
+}
+
+.page-analytics .position-relative-card {
+    position: relative;
+}
+
+.page-analytics .table-wrap {
+    max-height: 420px;
+    overflow: auto;
+}
+
+@media (max-width: 768px) {
+    .padding-adjustment {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+}
