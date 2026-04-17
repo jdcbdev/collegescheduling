@@ -66,7 +66,7 @@
           <span class="hide-menu">Users</span>
         </li>
         <li class="sidebar-item">
-          <a class="sidebar-link<?= $activePage === 'instructors' ? ' active' : '' ?>" href="<?= htmlspecialchars($navBasePath) ?>instructors/list.php" aria-expanded="false">
+          <a class="sidebar-link<?= $activePage === 'instructors' ? ' active' : '' ?>" href="<?= htmlspecialchars($navBasePath) ?>users/instructors.php" aria-expanded="false">
             <iconify-icon icon="solar:user-check-line-duotone"></iconify-icon>
             <span class="hide-menu">Instructors</span>
           </a>
