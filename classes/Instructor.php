@@ -21,7 +21,7 @@ class Instructor extends Database {
                     i.created_at
                 FROM instructors i
                 LEFT JOIN departments d ON i.department_id = d.id
-                ORDER BY i.firstname ASC, i.lastname ASC";
+                ORDER BY i.lastname ASC, i.firstname ASC";
 
         $query = $conn->prepare($sql);
         $query->execute();

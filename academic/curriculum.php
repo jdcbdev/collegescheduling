@@ -139,7 +139,7 @@ $navBasePath = '../';
         var rows = data.map(function(item, index) {
           return '<tr>' +
             '<td>' + (index + 1) + '</td>' +
-            '<td><a href="./curriculum_subjects.php?id=' + item.id + '" style="color: inherit; text-decoration: none;" onmouseover="this.style.textDecoration=\'underline\'" onmouseout="this.style.textDecoration=\'none\'">' + escapeHtml(item.program_name || 'N/A') + '</a></td>' +
+            '<td><a href="./curriculum_subjects.php?id=' + item.id + '" class="curriculum-link my-link">' + escapeHtml(item.program_name || 'N/A') + '</a></td>' +
             '<td><strong>' + escapeHtml(item.program_code || 'N/A') + '</strong></td>' +
             '<td>' + item.effective_start_year + '</td>' +
             '<td>' + item.effective_end_year + '</td>' +

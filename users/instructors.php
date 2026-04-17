@@ -25,7 +25,7 @@ $departments = $instructor->getDepartments();
             <div class="col-12">
               <div class="card mb-4">
                 <div class="card-body">
-                  <div class="d-flex justify-content-between align-items-center mb-3">
+                  <div class="d-flex justify-content-between align-items-center">
                     <div>
                       <h5 class="card-title mb-1">Instructors</h5>
                       <p class="text-muted mb-0">Manage faculty and instructors</p>
@@ -47,6 +47,7 @@ $departments = $instructor->getDepartments();
                     <table class="table table-hover" id="instructorsTable">
                       <thead>
                         <tr>
+                          <th>#</th>
                           <th>Code</th>
                           <th>Name</th>
                           <th>Email</th>
@@ -240,14 +241,13 @@ $departments = $instructor->getDepartments();
         tbody.empty();
 
         if (!data.length) {
-          tbody.html('<tr><td colspan="8" class="text-center text-muted">No instructors found.</td></tr>');
+          tbody.html('<tr><td colspan="9" class="text-center text-muted">No instructors found.</td></tr>');
           return;
         }
 
-        data.forEach(function(instructor) {
+        data.forEach(function(instructor, index) {
           var statusBadge = instructor.active_status ? '<span class="badge bg-success my-bg-color">Active</span>' : '<span class="badge bg-secondary my-bg-color-gray">Inactive</span>';
-          var row = '<tr>' +
-            '<td><strong>' + escapeHtml(instructor.instructor_code) + '</strong></td>' +
+          var row = '<tr>' +            '<td>' + (index + 1) + '</td>' +            '<td><strong>' + escapeHtml(instructor.instructor_code) + '</strong></td>' +
             '<td>' + escapeHtml(instructor.firstname + (instructor.middlename ? ' ' + instructor.middlename : '') + ' ' + instructor.lastname) + '</td>' +
             '<td>' + (instructor.email ? escapeHtml(instructor.email) : '-') + '</td>' +
             '<td>' + (instructor.phone ? escapeHtml(instructor.phone) : '-') + '</td>' +

@@ -33,7 +33,7 @@ if (!$curriculumData) {
             <div class="col-12">
               <div class="card mb-4">
                 <div class="card-body">
-                  <div class="d-flex justify-content-between align-items-center mb-3">
+                  <div class="d-flex justify-content-between align-items-center">
                     <div>
                       <h5 class="card-title mb-1">Curriculum Subjects</h5>
                       <p class="text-muted mb-0">

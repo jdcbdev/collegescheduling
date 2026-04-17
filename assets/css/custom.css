@@ -25,6 +25,15 @@
     background-color: var(--status-cancelled) !important;
 }
 
+.my-link{
+    color: var(--wmsu) !important;
+    font-weight: 700;
+}
+
+.my-link:hover{
+    color: var(--wmsu-light) !important;
+}
+
 .request-card .status-badge,
 .request-card .badge {
     color: var(--white) !important;
