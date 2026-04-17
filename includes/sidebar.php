@@ -65,12 +65,6 @@
             <span class="hide-menu">Schedules</span>
           </a>
         </li>
-        <li class="sidebar-item">
-          <a class="sidebar-link<?= $activePage === 'rooms' ? ' active' : '' ?>" href="<?= htmlspecialchars($navBasePath) ?>settings/rooms.php" aria-expanded="false">
-            <iconify-icon icon="solar:door-line-duotone"></iconify-icon>
-            <span class="hide-menu">Rooms</span>
-          </a>
-        </li>
 
         <!-- Users & Enrollment -->
         <li class="nav-small-cap">
@@ -102,8 +96,14 @@
           <span class="hide-menu">Settings</span>
         </li>
         <li class="sidebar-item">
+          <a class="sidebar-link<?= $activePage === 'rooms' ? ' active' : '' ?>" href="<?= htmlspecialchars($navBasePath) ?>settings/rooms.php" aria-expanded="false">
+            <iconify-icon icon="solar:code-scan-outline"></iconify-icon>
+            <span class="hide-menu">Rooms</span>
+          </a>
+        </li>
+        <li class="sidebar-item">
           <a class="sidebar-link<?= $activePage === 'departments' ? ' active' : '' ?>" href="<?= htmlspecialchars($navBasePath) ?>settings/departments.php" aria-expanded="false">
-            <iconify-icon icon="solar:building-line-duotone"></iconify-icon>
+            <iconify-icon icon="solar:buildings-2-line-duotone"></iconify-icon>
             <span class="hide-menu">Departments</span>
           </a>
         </li>
