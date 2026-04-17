@@ -43,7 +43,7 @@ if (!$curriculumData) {
                     </div>
                     <div>
                       <button type="button" class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#addSubjectModal">Add Subject</button>
-                      <a href="./curriculum.php" class="btn btn-secondary btn-cancel-all">Back</a>
+                      <a href="./curriculum.php" class="btn btn-primary btn-cancel-all">Back</a>
                     </div>
                   </div>
                 </div>
@@ -103,8 +103,61 @@ if (!$curriculumData) {
             </div>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-secondary btn-cancel-all" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-primary btn-cancel-all" data-bs-dismiss="modal">Cancel</button>
             <button type="submit" class="btn btn-primary">Add Subject</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Subject Modal -->
+  <div class="modal fade" id="editSubjectModal" tabindex="-1" aria-labelledby="editSubjectModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="editSubjectModalLabel">Edit Subject</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="editSubjectForm">
+          <div class="modal-body">
+            <input type="hidden" id="editSubjectId" name="subject_id">
+            <div class="mb-3">
+              <label for="editSubjectCode" class="form-label">Subject Code</label>
+              <input type="text" class="form-control" id="editSubjectCode" name="subject_code" required>
+            </div>
+            <div class="mb-3">
+              <label for="editSubjectName" class="form-label">Subject Name</label>
+              <input type="text" class="form-control" id="editSubjectName" name="subject_name" required>
+            </div>
+            <div class="mb-3">
+              <label for="editCreditHours" class="form-label">Credit Hours</label>
+              <input type="number" class="form-control" id="editCreditHours" name="credit_hours" min="1" max="10" required>
+            </div>
+            <div class="mb-3">
+              <label for="editYearLevel" class="form-label">Year Level</label>
+              <select class="form-control" id="editYearLevel" name="year_level" required>
+                <option value="">Select year level</option>
+                <option value="1">Year 1</option>
+                <option value="2">Year 2</option>
+                <option value="3">Year 3</option>
+                <option value="4">Year 4</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label for="editSemester" class="form-label">Semester</label>
+              <select class="form-control" id="editSemester" name="semester" required>
+                <option value="">Select semester</option>
+                <option value="1">1st Semester</option>
+                <option value="2">2nd Semester</option>
+                <option value="3">Summer Semester</option>
+              </select>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-danger" id="deleteSubjectBtn">Delete</button>
+            <button type="button" class="btn btn-primary btn-cancel-all" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary">Update Subject</button>
           </div>
         </form>
       </div>
@@ -186,7 +239,7 @@ if (!$curriculumData) {
             var sem1Total = 0;
             sem1Subjects.forEach(function(subject) {
               html += '<tr>';
-              html += '<td><strong>' + escapeHtml(subject.subject_code) + '</strong></td>';
+              html += '<td><a href="#" class="btn-edit-subject" data-id="' + subject.id + '" data-code="' + escapeHtml(subject.subject_code) + '" data-name="' + escapeHtml(subject.subject_name) + '" data-credits="' + subject.credit_hours + '" data-year="' + subject.year_level + '" data-semester="' + subject.semester + '"><strong style="color: #007bff; cursor: pointer;">' + escapeHtml(subject.subject_code) + '</strong></a></td>';
               html += '<td>' + escapeHtml(subject.subject_name) + '</td>';
               html += '<td>' + subject.credit_hours + '</td>';
               html += '</tr>';
@@ -223,7 +276,7 @@ if (!$curriculumData) {
             var sem2Total = 0;
             sem2Subjects.forEach(function(subject) {
               html += '<tr>';
-              html += '<td><strong>' + escapeHtml(subject.subject_code) + '</strong></td>';
+              html += '<td><a href="#" class="btn-edit-subject" data-id="' + subject.id + '" data-code="' + escapeHtml(subject.subject_code) + '" data-name="' + escapeHtml(subject.subject_name) + '" data-credits="' + subject.credit_hours + '" data-year="' + subject.year_level + '" data-semester="' + subject.semester + '"><strong style="color: #007bff; cursor: pointer;">' + escapeHtml(subject.subject_code) + '</strong></a></td>';
               html += '<td>' + escapeHtml(subject.subject_name) + '</td>';
               html += '<td>' + subject.credit_hours + '</td>';
               html += '</tr>';
@@ -260,7 +313,7 @@ if (!$curriculumData) {
             var sem3Total = 0;
             sem3Subjects.forEach(function(subject) {
               html += '<tr>';
-              html += '<td><strong>' + escapeHtml(subject.subject_code) + '</strong></td>';
+              html += '<td><a href="#" class="btn-edit-subject" data-id="' + subject.id + '" data-code="' + escapeHtml(subject.subject_code) + '" data-name="' + escapeHtml(subject.subject_name) + '" data-credits="' + subject.credit_hours + '" data-year="' + subject.year_level + '" data-semester="' + subject.semester + '"><strong style="color: #007bff; cursor: pointer;">' + escapeHtml(subject.subject_code) + '</strong></a></td>';
               html += '<td>' + escapeHtml(subject.subject_name) + '</td>';
               html += '<td>' + subject.credit_hours + '</td>';
               html += '</tr>';
@@ -329,6 +382,79 @@ if (!$curriculumData) {
           }, 'json').fail(function() {
             showAlert('Error adding subject. Please try again.', 'danger');
           });
+        });
+
+        // Handle edit subject button click
+        $(document).on('click', '.btn-edit-subject', function(e) {
+          e.preventDefault();
+          var subjectId = $(this).data('id');
+          var subjectCode = $(this).data('code');
+          var subjectName = $(this).data('name');
+          var creditHours = $(this).data('credits');
+          var yearLevel = $(this).data('year');
+          var semester = $(this).data('semester');
+
+          $('#editSubjectId').val(subjectId);
+          $('#editSubjectCode').val(subjectCode);
+          $('#editSubjectName').val(subjectName);
+          $('#editCreditHours').val(creditHours);
+          $('#editYearLevel').val(yearLevel);
+          $('#editSemester').val(semester);
+
+          var editModal = new bootstrap.Modal(document.getElementById('editSubjectModal'));
+          editModal.show();
+        });
+
+        // Handle edit subject form submission
+        $('#editSubjectForm').on('submit', function(e) {
+          e.preventDefault();
+          var formData = {
+            action: 'update',
+            curriculum_id: curriculumId,
+            subject_id: $('#editSubjectId').val(),
+            subject_code: $('#editSubjectCode').val(),
+            subject_name: $('#editSubjectName').val(),
+            credit_hours: $('#editCreditHours').val(),
+            year_level: $('#editYearLevel').val(),
+            semester: $('#editSemester').val()
+          };
+
+          $.post(endpoint.replace('curriculum_subjects_actions.php', 'curriculum_subjects_actions.php'), formData, function(response) {
+            if (response.success) {
+              var modal = bootstrap.Modal.getInstance(document.getElementById('editSubjectModal'));
+              modal.hide();
+              loadSubjects();
+              showAlert('Subject updated successfully!', 'success');
+            } else {
+              showAlert(response.message || 'Error updating subject.', 'danger');
+            }
+          }, 'json').fail(function() {
+            showAlert('Error updating subject. Please try again.', 'danger');
+          });
+        });
+
+        // Handle delete subject button click
+        $(document).on('click', '#deleteSubjectBtn', function() {
+          if (confirm('Are you sure you want to delete this subject?')) {
+            var subjectId = $('#editSubjectId').val();
+            var formData = {
+              action: 'delete',
+              subject_id: subjectId
+            };
+
+            $.post(endpoint.replace('curriculum_subjects_actions.php', 'curriculum_subjects_actions.php'), formData, function(response) {
+              if (response.success) {
+                var modal = bootstrap.Modal.getInstance(document.getElementById('editSubjectModal'));
+                modal.hide();
+                loadSubjects();
+                showAlert('Subject deleted successfully!', 'success');
+              } else {
+                showAlert(response.message || 'Error deleting subject.', 'danger');
+              }
+            }, 'json').fail(function() {
+              showAlert('Error deleting subject. Please try again.', 'danger');
+            });
+          }
         });
       });
 

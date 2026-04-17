@@ -209,4 +209,36 @@ class Curriculum extends Database {
 
         return $query->execute();
     }
+
+    public function updateSubject($subject_id, $subject_code, $subject_name, $credit_hours, $year_level, $semester) {
+        $conn = $this->connect();
+
+        $sql = "UPDATE subjects SET 
+                subject_code = :subject_code,
+                subject_name = :subject_name,
+                credit_hours = :credit_hours,
+                year_level = :year_level,
+                semester = :semester
+                WHERE id = :subject_id";
+
+        $query = $conn->prepare($sql);
+        $query->bindParam(':subject_id', $subject_id, PDO::PARAM_INT);
+        $query->bindParam(':subject_code', $subject_code);
+        $query->bindParam(':subject_name', $subject_name);
+        $query->bindParam(':credit_hours', $credit_hours, PDO::PARAM_INT);
+        $query->bindParam(':year_level', $year_level, PDO::PARAM_INT);
+        $query->bindParam(':semester', $semester, PDO::PARAM_INT);
+
+        return $query->execute();
+    }
+
+    public function deleteSubject($subject_id) {
+        $conn = $this->connect();
+
+        $sql = "DELETE FROM subjects WHERE id = :subject_id";
+        $query = $conn->prepare($sql);
+        $query->bindParam(':subject_id', $subject_id, PDO::PARAM_INT);
+
+        return $query->execute();
+    }
 }
