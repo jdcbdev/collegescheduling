@@ -36,8 +36,8 @@
           <span class="hide-menu">Academic</span>
         </li>
         <li class="sidebar-item">
-          <a class="sidebar-link<?= $activePage === 'programs' ? ' active' : '' ?>" href="<?= htmlspecialchars($navBasePath) ?>programs/list.php" aria-expanded="false">
-            <iconify-icon icon="solar:books-line-duotone"></iconify-icon>
+          <a class="sidebar-link<?= $activePage === 'programs' ? ' active' : '' ?>" href="<?= htmlspecialchars($navBasePath) ?>academic/programs.php" aria-expanded="false">
+            <iconify-icon icon="solar:notebook-bookmark-broken"></iconify-icon>
             <span class="hide-menu">Programs</span>
           </a>
         </li>
@@ -97,7 +97,7 @@
         </li>
         <li class="sidebar-item">
           <a class="sidebar-link<?= $activePage === 'rooms' ? ' active' : '' ?>" href="<?= htmlspecialchars($navBasePath) ?>settings/rooms.php" aria-expanded="false">
-            <iconify-icon icon="solar:code-scan-outline"></iconify-icon>
+            <iconify-icon icon="solar:garage-line-duotone"></iconify-icon>
             <span class="hide-menu">Rooms</span>
           </a>
         </li>
