@@ -338,7 +338,8 @@ if (!$curriculumData) {
 
           // Summer semester below
           if (sem3Subjects.length > 0) {
-            html += '<div class="col-6">';
+            html += '<div class="row g-3 justify-content-center">';
+            html += '<div class="col-md-6">';
             html += '<h6 class="mb-3 text-center">Summer</h6>';
             html += '<div class="table-responsive">';
             html += '<table class="table table-sm table-hover">';
@@ -362,6 +363,7 @@ if (!$curriculumData) {
             html += '<tr class="table-active"><td colspan="2"><strong>Subtotal</strong></td><td><strong>' + sem3LecTotal + '</strong></td><td><strong>' + sem3LabTotal + '</strong></td><td><strong>' + sem3Total + '</strong></td></tr>';
             html += '</tbody>';
             html += '</table>';
+            html += '</div>';
             html += '</div>';
             html += '</div>';
           }
