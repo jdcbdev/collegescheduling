@@ -6,14 +6,16 @@ const START_HOUR = 7;
 const END_HOUR = 20;
 const INTERVAL_MINUTES = 30;
 const EVENT_PALETTE = [
-  { bg: '#e8f0fe', border: '#1a73e8' },
-  { bg: '#e6f4ea', border: '#188038' },
-  { bg: '#fef7e0', border: '#f9ab00' },
-  { bg: '#fce8e6', border: '#d93025' },
-  { bg: '#f3e8fd', border: '#9334e6' },
-  { bg: '#e0f7fa', border: '#00838f' },
-  { bg: '#fff3e0', border: '#ef6c00' },
-  { bg: '#ede7f6', border: '#5e35b1' }
+  { bg: '#eaf2ff', border: '#1d4ed8' },
+  { bg: '#e9f9ef', border: '#15803d' },
+  { bg: '#fff8e8', border: '#b45309' },
+  { bg: '#ffecec', border: '#b91c1c' },
+  { bg: '#f4ecff', border: '#7e22ce' },
+  { bg: '#e8fbff', border: '#0f766e' },
+  { bg: '#fff1e8', border: '#c2410c' },
+  { bg: '#eceffb', border: '#4338ca' },
+  { bg: '#f4ffe8', border: '#4d7c0f' },
+  { bg: '#ffe8f3', border: '#be185d' }
 ];
 
 const appState = {
@@ -77,10 +79,33 @@ function to12H(hour, min) {
   return `${h}:${min === 0 ? '00' : '30'} ${ampm}`;
 }
 
+function formatTimeTo12H(timeValue) {
+  if (!timeValue) return '';
+  const normalized = String(timeValue).slice(0, 5);
+  const [hStr, mStr] = normalized.split(':');
+  const hour = Number(hStr);
+  const min = Number(mStr);
+  if (Number.isNaN(hour) || Number.isNaN(min)) return normalized;
+  return to12H(hour, min);
+}
+
 function minutesToTimeString(totalMinutes) {
   const hour = Math.floor(totalMinutes / 60);
   const min = totalMinutes % 60;
   return `${String(hour).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+}
+
+function getSelectedModalDays() {
+  return Array.from(document.querySelectorAll('input[name="addScheduleDays[]"]:checked')).map(input => input.value);
+}
+
+function setModalDaySelection(selectedDays) {
+  const selected = new Set((selectedDays || []).map(day => String(day).toLowerCase()));
+  const checkboxes = document.querySelectorAll('input[name="addScheduleDays[]"]');
+  checkboxes.forEach(cb => {
+    cb.checked = selected.has(String(cb.value).toLowerCase());
+    cb.disabled = false;
+  });
 }
 
 function generateScheduleTableHtml() {
@@ -150,6 +175,46 @@ function hashString(value) {
   return Math.abs(hash);
 }
 
+function hslToHex(h, s, l) {
+  const sat = s / 100;
+  const lig = l / 100;
+  const c = (1 - Math.abs((2 * lig) - 1)) * sat;
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+  const m = lig - (c / 2);
+  let r = 0;
+  let g = 0;
+  let b = 0;
+
+  if (h < 60) {
+    r = c; g = x; b = 0;
+  } else if (h < 120) {
+    r = x; g = c; b = 0;
+  } else if (h < 180) {
+    r = 0; g = c; b = x;
+  } else if (h < 240) {
+    r = 0; g = x; b = c;
+  } else if (h < 300) {
+    r = x; g = 0; b = c;
+  } else {
+    r = c; g = 0; b = x;
+  }
+
+  const toHex = (v) => {
+    const n = Math.round((v + m) * 255);
+    return n.toString(16).padStart(2, '0');
+  };
+
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
+function makeGeneratedColor(index) {
+  const hue = (index * 137.508) % 360;
+  return {
+    bg: hslToHex(hue, 88, 94),
+    border: hslToHex(hue, 72, 38)
+  };
+}
+
 function getColorKeyByView(item, viewType) {
   const subject = item.subject_code || item.subject_name || '';
   const section = item.class_section || '';
@@ -162,30 +227,43 @@ function getColorKeyByView(item, viewType) {
   return `${subject}|${instructor}|${section}`;
 }
 
-function getEventPaletteColor(item, viewType) {
-  const key = getColorKeyByView(item, viewType);
-  const index = hashString(key) % EVENT_PALETTE.length;
-  return EVENT_PALETTE[index];
+function buildColorMapForSchedules(schedules, viewType) {
+  const colorMap = {};
+  let colorIndex = 0;
+
+  schedules.forEach(item => {
+    const key = getColorKeyByView(item, viewType);
+    if (!colorMap[key]) {
+      if (colorIndex < EVENT_PALETTE.length) {
+        colorMap[key] = EVENT_PALETTE[colorIndex];
+      } else {
+        colorMap[key] = makeGeneratedColor(colorIndex - EVENT_PALETTE.length);
+      }
+      colorIndex += 1;
+    }
+  });
+
+  return colorMap;
 }
 
-function buildScheduleCellHtml(item, viewType='class') {
+function buildScheduleCellHtml(item, palette) {
   const title = item.subject_name || 'Scheduled';
   const details = [];
   if (item.class_mode) details.push(item.class_mode);
   if (item.class_section) details.push(item.class_section);
 
-  const timeRange = (item.start_time && item.end_time) ? `${item.start_time.slice(0, 5)} - ${item.end_time.slice(0, 5)}` : '';
+  const timeRange = (item.start_time && item.end_time) ? `${formatTimeTo12H(item.start_time)} - ${formatTimeTo12H(item.end_time)}` : '';
   if (timeRange) details.push(timeRange);
 
   const scheduleId = item && item.id ? Number(item.id) : 0;
-  const palette = getEventPaletteColor(item, viewType);
+  const eventColor = palette || EVENT_PALETTE[0];
 
   const detailsLine = details.length ? `<div>${escapeHtml(details.join(' | '))}</div>` : '';
   const instructorLine = item.instructor_name ? `<div>${escapeHtml(item.instructor_name)}</div>` : '';
-  const roomLine = item.room_name ? `<div>${escapeHtml(item.room_name)}</div>` : '';
+  const roomLine = `<div>${escapeHtml(item.room_name || 'TBA')}</div>`;
 
   return `
-    <div class="p-1 h-100 sched-event-card" data-schedule-id="${scheduleId}" style="background:${palette.bg}; border-left:3px solid ${palette.border}; font-size:11px; line-height:1.25;">
+    <div class="p-1 h-100 sched-event-card" data-schedule-id="${scheduleId}" style="background:${eventColor.bg}; border-left:3px solid ${eventColor.border}; font-size:11px; line-height:1.25;">
       <div style="font-weight:600;">${escapeHtml(title)}</div>
       ${detailsLine}
       ${instructorLine}
@@ -253,6 +331,7 @@ function plotSchedules(containerId, schedules, viewType='class') {
 
   const dayStart = START_HOUR * 60;
   const dayEnd = END_HOUR * 60;
+  const colorMap = buildColorMapForSchedules(schedules, viewType);
   appState.currentSchedulesById = {};
 
   schedules.forEach(item => {
@@ -288,7 +367,8 @@ function plotSchedules(containerId, schedules, viewType='class') {
       startCell.dataset.scheduleId = String(item.id);
     }
     startCell.rowSpan = rowspan;
-    startCell.innerHTML = buildScheduleCellHtml(item, viewType);
+    const key = getColorKeyByView(item, viewType);
+    startCell.innerHTML = buildScheduleCellHtml(item, colorMap[key]);
 
     for (let slot = startSlot + 1; slot < endSlot; slot++) {
       const coveredMinutes = dayStart + (slot * INTERVAL_MINUTES);
@@ -509,15 +589,15 @@ function ensureAddScheduleModal() {
             <form id="addScheduleForm">
               <div class="mb-2">
                 <label class="form-label mb-1">Day</label>
-                <select id="addScheduleDay" class="form-select" required>
-                  <option value="Monday">Monday</option>
-                  <option value="Tuesday">Tuesday</option>
-                  <option value="Wednesday">Wednesday</option>
-                  <option value="Thursday">Thursday</option>
-                  <option value="Friday">Friday</option>
-                  <option value="Saturday">Saturday</option>
-                  <option value="Sunday">Sunday</option>
-                </select>
+                <div id="addScheduleDaysWrap" class="d-flex flex-wrap gap-2">
+                  <div class="form-check form-check-inline m-0"><input class="form-check-input" type="checkbox" name="addScheduleDays[]" id="addScheduleDayMonday" value="Monday"><label class="form-check-label" for="addScheduleDayMonday">Mon</label></div>
+                  <div class="form-check form-check-inline m-0"><input class="form-check-input" type="checkbox" name="addScheduleDays[]" id="addScheduleDayTuesday" value="Tuesday"><label class="form-check-label" for="addScheduleDayTuesday">Tue</label></div>
+                  <div class="form-check form-check-inline m-0"><input class="form-check-input" type="checkbox" name="addScheduleDays[]" id="addScheduleDayWednesday" value="Wednesday"><label class="form-check-label" for="addScheduleDayWednesday">Wed</label></div>
+                  <div class="form-check form-check-inline m-0"><input class="form-check-input" type="checkbox" name="addScheduleDays[]" id="addScheduleDayThursday" value="Thursday"><label class="form-check-label" for="addScheduleDayThursday">Thu</label></div>
+                  <div class="form-check form-check-inline m-0"><input class="form-check-input" type="checkbox" name="addScheduleDays[]" id="addScheduleDayFriday" value="Friday"><label class="form-check-label" for="addScheduleDayFriday">Fri</label></div>
+                  <div class="form-check form-check-inline m-0"><input class="form-check-input" type="checkbox" name="addScheduleDays[]" id="addScheduleDaySaturday" value="Saturday"><label class="form-check-label" for="addScheduleDaySaturday">Sat</label></div>
+                  <div class="form-check form-check-inline m-0"><input class="form-check-input" type="checkbox" name="addScheduleDays[]" id="addScheduleDaySunday" value="Sunday"><label class="form-check-label" for="addScheduleDaySunday">Sun</label></div>
+                </div>
               </div>
               <div class="row g-2 mb-2">
                 <div class="col-6">
@@ -622,8 +702,7 @@ function ensureAddScheduleModal() {
       if (saveBtnRef) saveBtnRef.disabled = false;
       const deleteBtnRef = getEl('deleteScheduleBtn');
       if (deleteBtnRef) deleteBtnRef.classList.add('d-none');
-      const dayRef = getEl('addScheduleDay');
-      if (dayRef) dayRef.disabled = false;
+      setModalDaySelection([]);
       const programRef = getEl('addScheduleProgramSelect');
       if (programRef) programRef.disabled = false;
       const classRef = getEl('addScheduleClass');
@@ -659,9 +738,7 @@ function openAddScheduleModal(payload) {
   const dayName = DAYS[payload.dayIndex];
 
   setModalAlert('');
-  const dayInput = getEl('addScheduleDay');
-  dayInput.value = dayName;
-  dayInput.disabled = false;
+  setModalDaySelection([dayName]);
   getEl('addScheduleStartTime').value = minutesToTimeString(payload.startMinutes);
   getEl('addScheduleEndTime').value = minutesToTimeString(payload.endMinutes);
 
@@ -748,7 +825,6 @@ function openEditScheduleModal(scheduleId) {
   setModalAlert('');
 
   const modalEl = getEl('addScheduleModal');
-  const dayInput = getEl('addScheduleDay');
   const programSelect = getEl('addScheduleProgramSelect');
   const classSelect = getEl('addScheduleClass');
   const instructorSelect = getEl('addScheduleInstructor');
@@ -771,10 +847,7 @@ function openEditScheduleModal(scheduleId) {
     deleteBtn.classList.remove('d-none');
   }
 
-  if (dayInput) {
-    dayInput.value = schedule.day_of_week || '';
-    dayInput.disabled = false;
-  }
+  setModalDaySelection([schedule.day_of_week || '']);
   getEl('addScheduleStartTime').value = String(schedule.start_time || '').slice(0, 5);
   getEl('addScheduleEndTime').value = String(schedule.end_time || '').slice(0, 5);
 
@@ -831,7 +904,7 @@ function getModalMode() {
 function saveScheduleFromModal() {
   if (modalBusy) return;
 
-  const day = getEl('addScheduleDay').value;
+  const days = getSelectedModalDays();
   const programId = getEl('addScheduleProgramSelect').value;
   const classId = getEl('addScheduleClass').value;
   const instructorId = getEl('addScheduleInstructor').value;
@@ -853,8 +926,8 @@ function saveScheduleFromModal() {
     setModalAlert('Subject is required.');
     return;
   }
-  if (!day) {
-    setModalAlert('Day is required.');
+  if (days.length === 0) {
+    setModalAlert('Select at least one day.');
     return;
   }
   if (!startTime || !endTime) {
@@ -875,6 +948,13 @@ function saveScheduleFromModal() {
   const mode = getModalMode();
   const scheduleId = getEl('addScheduleModal') ? Number(getEl('addScheduleModal').dataset.scheduleId || 0) : 0;
 
+  if (mode === 'edit' && days.length !== 1) {
+    setModalAlert('Edit mode allows only one selected day.');
+    modalBusy = false;
+    if (saveBtn) saveBtn.disabled = false;
+    return;
+  }
+
   payload.set('action', mode === 'edit' ? 'updateSchedule' : 'addSchedule');
   if (mode === 'edit' && scheduleId > 0) {
     payload.set('id', String(scheduleId));
@@ -884,33 +964,70 @@ function saveScheduleFromModal() {
   payload.set('class_mode', classMode || 'LEC');
   payload.set('instructor_id', instructorId || '');
   payload.set('room_id', roomId || '');
-  payload.set('day_of_week', day);
   payload.set('start_time', startTime);
   payload.set('end_time', endTime);
 
-  fetch('schedule_actions.php', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: payload.toString()
-  })
-    .then(r => r.json())
-    .then(data => {
-      if (!data || !data.success) {
-        if (data && Array.isArray(data.conflicts) && data.conflicts.length > 0) {
-          const first = data.conflicts[0];
-          const msg = `Conflict: ${first.day_of_week} ${String(first.start_time).slice(0, 5)}-${String(first.end_time).slice(0, 5)} (${first.class_section || 'No class'} | ${first.instructor_name || 'No instructor'} | ${first.room_name || 'No room'})`;
-          setModalAlert(msg);
-        } else {
-          setModalAlert((data && data.message) ? data.message : 'Unable to save schedule.');
+  if (mode === 'edit') {
+    payload.set('day_of_week', days[0]);
+    fetch('schedule_actions.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: payload.toString()
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (!data || !data.success) {
+          if (data && Array.isArray(data.conflicts) && data.conflicts.length > 0) {
+            const first = data.conflicts[0];
+            const msg = `Conflict: ${first.day_of_week} ${formatTimeTo12H(first.start_time)}-${formatTimeTo12H(first.end_time)} (${first.class_section || 'No class'} | ${first.instructor_name || 'No instructor'} | ${first.room_name || 'No room'})`;
+            setModalAlert(msg);
+          } else {
+            setModalAlert((data && data.message) ? data.message : 'Unable to save schedule.');
+          }
+          return;
         }
+
+        scheduleModalInstance.hide();
+        refreshScheduleByCurrentSelection();
+      })
+      .catch(() => {
+        setModalAlert('Failed to save schedule. Please try again.');
+      })
+      .finally(() => {
+        modalBusy = false;
+        if (saveBtn) saveBtn.disabled = false;
+      });
+    return;
+  }
+
+  const requests = days.map(day => {
+    const addPayload = new URLSearchParams(payload.toString());
+    addPayload.set('action', 'addSchedule');
+    addPayload.set('day_of_week', day);
+    return fetch('schedule_actions.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: addPayload.toString()
+    }).then(r => r.json()).catch(() => ({ success: false, message: 'Failed to save schedule.' }));
+  });
+
+  Promise.all(requests)
+    .then(results => {
+      const failed = results.filter(r => !r || !r.success);
+      if (failed.length > 0) {
+        const first = failed[0];
+        if (first && Array.isArray(first.conflicts) && first.conflicts.length > 0) {
+          const c = first.conflicts[0];
+          setModalAlert(`Saved ${results.length - failed.length}/${results.length}. Conflict: ${c.day_of_week} ${formatTimeTo12H(c.start_time)}-${formatTimeTo12H(c.end_time)}.`);
+        } else {
+          setModalAlert(`Saved ${results.length - failed.length}/${results.length}. ${(first && first.message) ? first.message : 'Unable to save some schedules.'}`);
+        }
+        refreshScheduleByCurrentSelection();
         return;
       }
 
       scheduleModalInstance.hide();
       refreshScheduleByCurrentSelection();
-    })
-    .catch(() => {
-      setModalAlert('Failed to save schedule. Please try again.');
     })
     .finally(() => {
       modalBusy = false;
