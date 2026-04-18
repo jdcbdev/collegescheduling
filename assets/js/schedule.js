@@ -441,7 +441,7 @@ function loadPrograms() {
       }
       const dropdown = getEl('programDropdown');
       if (dropdown && data.success && Array.isArray(data.data)) {
-        populateSelectOptions(dropdown, 'Select Program', data.data, 'id', p => `${p.program_code} - ${p.program_name}`);
+        populateSelectOptions(dropdown, 'Select Program', data.data, 'id', p => `${p.program_code}`);
       }
     });
 }

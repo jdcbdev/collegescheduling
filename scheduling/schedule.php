@@ -31,7 +31,7 @@ $navBasePath = '../';
                       <option value="">Select Program</option>
                     </select>
                     <select id="classSectionDropdown" class="form-select form-select w-auto">
-                      <option value="">Select Class Section</option>
+                      <option value="">Select Class</option>
                     </select>
                     <select id="instructorDropdown" class="form-select form-select w-auto d-none">
                       <option value="">Select Instructor</option>
