@@ -137,6 +137,12 @@
     border-color: var(--wmsu);
 }
 
+.gc-time-label{
+    display: block;
+    position: relative;
+    top: -22px;
+}
+
 @media (max-width: 767.98px) {
     .request-action-buttons {
         gap: 0.5rem !important;
@@ -232,4 +238,68 @@
         padding-left: 0 !important;
         padding-right: 0 !important;
     }
+}
+
+/* Schedule grid style inspired by Google Calendar. */
+.table-schedule-main,
+.table-schedule-small {
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+
+.table-schedule-main thead th,
+.table-schedule-small thead th {
+    font-size: 14px;
+    font-weight: 700;
+    color: #5f6368;
+    background: #fff;
+    border-top: 0;
+    border-bottom: 1px solid #dadce0;
+    text-align: center;
+}
+
+.table-schedule-main tbody tr,
+.table-schedule-small tbody tr {
+    height: 56px;
+}
+
+.table-schedule-main tbody td,
+.table-schedule-small tbody td {
+    border-color: #dadce0;
+    vertical-align: top;
+    background: #fff;
+}
+
+.table-schedule-main .gc-time-cell,
+.table-schedule-small .gc-time-cell {
+    width: 52px;
+    position: relative;
+    border-left: 0;
+    border-right: 1px solid #dadce0;
+    color: #5f6368;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 0;
+    background: #fff;
+    text-align: center;
+}
+
+.table-schedule-main .gc-time-head,
+.table-schedule-small .gc-time-head {
+    border-left: 0;
+    border-right: 1px solid #dadce0;
+    color: transparent;
+}
+
+.table-schedule-main .gc-time-label,
+.table-schedule-small .gc-time-label {
+    display: block;
+    position: relative;
+    top: -6px;
+    left: 10px;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+    background: transparent;
+    padding: 0;
 }
