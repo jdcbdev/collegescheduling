@@ -1,6 +1,6 @@
 <?php
 
-require_once __DIR__ . '/database.php';
+require_once __DIR__ . '/Database.php';
 
 class SchoolYear extends Database {
 

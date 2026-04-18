@@ -54,6 +54,12 @@
           <span class="hide-menu">Scheduling</span>
         </li>
         <li class="sidebar-item">
+          <a class="sidebar-link<?= $activePage === 'classes' ? ' active' : '' ?>" href="<?= htmlspecialchars($navBasePath) ?>scheduling/classes.php" aria-expanded="false">
+            <iconify-icon icon="solar:layers-line-duotone"></iconify-icon>
+            <span class="hide-menu">Class Sections</span>
+          </a>
+        </li>
+        <li class="sidebar-item">
           <a class="sidebar-link<?= $activePage === 'schedules' ? ' active' : '' ?>" href="<?= htmlspecialchars($navBasePath) ?>schedules/list.php" aria-expanded="false">
             <iconify-icon icon="solar:clock-circle-line-duotone"></iconify-icon>
             <span class="hide-menu">Schedules</span>
