@@ -24,19 +24,11 @@ $navBasePath = '../';
                   <div>
                     <h5 class="card-title mb-1">Class Sections</h5>
                     <p class="text-muted mb-0">Manage class sections per curriculum per year level for the active school year.</p>
+                    <div class="mt-2">
+                      <span class="fw-bold">Active School Year</span><br>
+                      <span id="schoolYearTextHeader">Loading...</span>
+                    </div>
                   </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Active School Year Info -->
-          <div class="row">
-            <div class="col-12">
-              <div class="card bg-light border-primary mb-4">
-                <div class="card-body">
-                  <h6 class="card-title mb-2"><i class="ti ti-calendar-check"></i> Active School Year</h6>
-                  <p class="mb-0"><strong id="schoolYearText">Loading...</strong></p>
                 </div>
               </div>
             </div>
@@ -137,21 +129,28 @@ $navBasePath = '../';
       });
     });
 
+    function setSchoolYearTextAll(text) {
+      const el1 = document.getElementById('schoolYearText');
+      if (el1) el1.textContent = text;
+      const el2 = document.getElementById('schoolYearTextHeader');
+      if (el2) el2.textContent = text;
+    }
+
     function loadActiveSchoolYear() {
       fetch('classes_actions.php?action=getActiveSchoolYear')
         .then(response => response.json())
         .then(data => {
+          let text = 'No active school year found';
           if (data.success && data.data) {
             activeSchoolYearId = data.data.id;
-            document.getElementById('schoolYearText').textContent = 
-              data.data.start_year + '-' + data.data.end_year + ' (Semester ' + data.data.semester + ')';
-          } else {
-            document.getElementById('schoolYearText').textContent = 'No active school year found';
+            let semText = data.data.semester == 3 ? 'Summer' : 'Semester ' + data.data.semester;
+            text = data.data.start_year + '-' + data.data.end_year + ' (' + semText + ')';
           }
+          setSchoolYearTextAll(text);
         })
         .catch(error => {
           console.error('Error:', error);
-          document.getElementById('schoolYearText').textContent = 'Error loading school year';
+          setSchoolYearTextAll('Error loading school year');
         });
     }
 
@@ -266,7 +265,7 @@ $navBasePath = '../';
           .catch(error => console.error('Error loading sections:', error));
 
         html += `
-          <div class="col-lg-6 col-xxl-4 mb-4">
+          <div class="col-lg-6 col-xxl-2-4 mb-4">
             <div class="card h-100" id="card-${programId}">
               <div class="card-header d-flex justify-content-between align-items-center">
                 <div>
