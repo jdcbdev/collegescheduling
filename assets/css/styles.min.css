@@ -2416,9 +2416,9 @@ progress {
 .form-control:focus {
   color: var(--bs-heading-color);
   background-color: transparent;
-  border-color: #cc0000;
+  border-color: #005a32;
   outline: 0;
-  box-shadow: var(--bs-box-shadow-inset), 0 0 0 0.25rem rgba(179, 0, 0, 0.25);
+  box-shadow: var(--bs-box-shadow-inset), 0 0 0 0.25rem rgba(0, 90, 50, 0.25);
 }
 .form-control::-webkit-date-and-time-value {
   min-width: 85px;
@@ -2562,9 +2562,9 @@ textarea.form-control-lg {
   }
 }
 .form-select:focus {
-  border-color: #cc0000;
+  border-color: #005a32;
   outline: 0;
-  box-shadow: unset, 0 0 0 0.25rem rgba(179, 0, 0, 0.25);
+  box-shadow: unset, 0 0 0 0.25rem rgba(0, 90, 50, 0.25);
 }
 .form-select[multiple], .form-select[size]:not([size="1"]) {
   padding-right: 16px;
@@ -2646,9 +2646,9 @@ textarea.form-control-lg {
   filter: brightness(90%);
 }
 .form-check-input:focus {
-  border-color: #cc0000;
+  border-color: #005a32;
   outline: 0;
-  box-shadow: 0 0 0 0.25rem rgba(179, 0, 0, 0.25);
+  box-shadow: 0 0 0 0.25rem rgba(0, 90, 50, 0.25);
 }
 .form-check-input:checked {
   background-color: var(--bs-primary);
