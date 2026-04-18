@@ -60,8 +60,8 @@
           </a>
         </li>
         <li class="sidebar-item">
-          <a class="sidebar-link<?= $activePage === 'schedules' ? ' active' : '' ?>" href="<?= htmlspecialchars($navBasePath) ?>schedules/list.php" aria-expanded="false">
-            <iconify-icon icon="solar:clock-circle-line-duotone"></iconify-icon>
+          <a class="sidebar-link<?= $activePage === 'schedule' ? ' active' : '' ?>" href="<?= htmlspecialchars($navBasePath) ?>scheduling/schedule.php" aria-expanded="false">
+            <iconify-icon icon="solar:calendar-mark-line-duotone"></iconify-icon>
             <span class="hide-menu">Schedules</span>
           </a>
         </li>
