@@ -134,20 +134,23 @@ function buildScheduleCellHtml(item) {
   const title = item.subject_name || 'Scheduled';
   const details = [];
   if (item.class_mode) details.push(item.class_mode);
-
   if (item.class_section) details.push(item.class_section);
-  if (item.instructor_name) details.push(item.instructor_name);
-  if (item.room_name) details.push(item.room_name);
 
   const timeRange = (item.start_time && item.end_time) ? `${item.start_time.slice(0, 5)} - ${item.end_time.slice(0, 5)}` : '';
   if (timeRange) details.push(timeRange);
 
   const scheduleId = item && item.id ? Number(item.id) : 0;
 
+  const detailsLine = details.length ? `<div>${escapeHtml(details.join(' | '))}</div>` : '';
+  const instructorLine = item.instructor_name ? `<div>${escapeHtml(item.instructor_name)}</div>` : '';
+  const roomLine = item.room_name ? `<div>${escapeHtml(item.room_name)}</div>` : '';
+
   return `
     <div class="p-1 h-100 sched-event-card" data-schedule-id="${scheduleId}" style="background:#eaf4ff; border-left:3px solid #0d6efd; font-size:11px; line-height:1.25;">
       <div style="font-weight:600;">${escapeHtml(title)}</div>
-      <div>${escapeHtml(details.join(' | '))}</div>
+      ${detailsLine}
+      ${instructorLine}
+      ${roomLine}
     </div>
   `;
 }
