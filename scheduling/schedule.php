@@ -17,8 +17,10 @@ $navBasePath = '../';
           <div class="row">
             <div class="col-12 mb-4">
               <div class="card h-100">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                  <h5 class="card-title mb-0 schedule-label">Class Schedule</h5>
+                <div class="card-header d-flex justify-content-end align-items-center">
+                  <div class="text-end me-3">
+                    <h5 class="card-title mb-0 schedule-label">Class Schedule <span class="text-muted">| SY: --</span></h5>
+                  </div>
                   <div class="schedule-header-controls d-flex align-items-center ms-auto gap-2">
                     <select id="scheduleType" class="form-select form-select w-auto">
                       <option value="class" selected>Class</option>

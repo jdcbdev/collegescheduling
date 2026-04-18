@@ -23,6 +23,7 @@ const appState = {
   classes: [],
   instructors: [],
   rooms: [],
+  activeSchoolYearText: 'SY: --',
   subjectsByClass: {},
   currentSchedulesById: {}
 };
@@ -34,6 +35,7 @@ document.addEventListener('DOMContentLoaded', function () {
   renderMainSchedule();
   ensureAddScheduleModal();
   setupDropdowns();
+  loadActiveSchoolYearLabel();
 });
 
 function getEl(id) {
@@ -43,6 +45,19 @@ function getEl(id) {
 function getActiveType() {
   const typeEl = getEl('scheduleType');
   return typeEl ? typeEl.value : 'class';
+}
+
+function getActiveTypeLabel() {
+  const type = getActiveType();
+  if (type === 'instructor') return 'Instructor Schedule';
+  if (type === 'room') return 'Room Schedule';
+  return 'Class Schedule';
+}
+
+function updateScheduleHeaderTitle() {
+  const scheduleLabel = document.querySelector('.schedule-label');
+  if (!scheduleLabel) return;
+  scheduleLabel.innerHTML = `${escapeHtml(getActiveTypeLabel())} <span class="text-muted">| ${escapeHtml(appState.activeSchoolYearText)}</span>`;
 }
 
 function getCurrentContextSelection() {
@@ -428,6 +443,32 @@ function loadPrograms() {
       if (dropdown && data.success && Array.isArray(data.data)) {
         populateSelectOptions(dropdown, 'Select Program', data.data, 'id', p => `${p.program_code} - ${p.program_name}`);
       }
+    });
+}
+
+function loadActiveSchoolYearLabel() {
+  fetch('schedule_actions.php?action=getActiveSchoolYear')
+    .then(r => r.json())
+    .then(data => {
+      if (!data || !data.success || !data.data) {
+        appState.activeSchoolYearText = 'SY: Not set';
+        updateScheduleHeaderTitle();
+        return;
+      }
+
+      const sy = data.data;
+      const semMap = {
+        '1': '1st Sem',
+        '2': '2nd Sem',
+        '3': 'Summer'
+      };
+      const semText = semMap[String(sy.semester)] || `Sem ${sy.semester}`;
+      appState.activeSchoolYearText = `SY: ${sy.start_year}-${sy.end_year} | ${semText}`;
+      updateScheduleHeaderTitle();
+    })
+    .catch(() => {
+      appState.activeSchoolYearText = 'SY: Not set';
+      updateScheduleHeaderTitle();
     });
 }
 
@@ -1084,7 +1125,6 @@ function deleteScheduleFromModal() {
 // --- Dropdown population and event logic ---
 function setupDropdowns() {
   const scheduleType = getEl('scheduleType');
-  const scheduleLabel = document.querySelector('.schedule-label');
   const programDropdown = getEl('programDropdown');
   const classSectionDropdown = getEl('classSectionDropdown');
   const instructorDropdown = getEl('instructorDropdown');
@@ -1092,16 +1132,7 @@ function setupDropdowns() {
 
   function updateHeaderAndFilters() {
     const type = getActiveType();
-
-    if (scheduleLabel) {
-      if (type === 'instructor') {
-        scheduleLabel.textContent = 'Instructor Schedule';
-      } else if (type === 'room') {
-        scheduleLabel.textContent = 'Room Schedule';
-      } else {
-        scheduleLabel.textContent = 'Class Schedule';
-      }
-    }
+    updateScheduleHeaderTitle();
 
     if (programDropdown) programDropdown.classList.toggle('d-none', type !== 'class');
     if (classSectionDropdown) classSectionDropdown.classList.toggle('d-none', type !== 'class');

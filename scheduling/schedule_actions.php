@@ -76,6 +76,13 @@ function findScheduleConflicts(PDO $conn, int $schoolyear_id, int $class_id, ?in
 
 try {
     $db = new Database();
+    if ($action === 'getActiveSchoolYear') {
+        $conn = $db->connect();
+        $stmt = $conn->query("SELECT id, start_year, end_year, semester FROM schoolyear WHERE is_active = TRUE LIMIT 1");
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        echo json_encode(['success' => true, 'data' => $row ?: null]);
+        exit;
+    }
     if ($action === 'getSchedule') {
         $type = strtolower(trim($_GET['type'] ?? 'class'));
         $id = (int)($_GET['id'] ?? 0);
