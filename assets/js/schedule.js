@@ -7,10 +7,12 @@ const END_HOUR = 20;
 const INTERVAL_MINUTES = 60;
 
 const appState = {
+  programs: [],
   classes: [],
   instructors: [],
   rooms: [],
-  subjectsByClass: {}
+  subjectsByClass: {},
+  currentSchedulesById: {}
 };
 
 let scheduleModalInstance = null;
@@ -129,9 +131,8 @@ function escapeHtml(value) {
 }
 
 function buildScheduleCellHtml(item) {
-  const title = item.subject_name || item.subject_code;
+  const title = item.subject_name || 'Scheduled';
   const details = [];
-  if (item.subject_code) details.push(item.subject_code);
   if (item.class_mode) details.push(item.class_mode);
 
   if (item.class_section) details.push(item.class_section);
@@ -162,6 +163,12 @@ function bindGridCellClickHandlers() {
         return;
       }
 
+      const scheduleId = this.dataset.scheduleId ? Number(this.dataset.scheduleId) : 0;
+      if (scheduleId > 0 && appState.currentSchedulesById[scheduleId]) {
+        openEditScheduleModal(scheduleId);
+        return;
+      }
+
       const dayIndex = Number(this.dataset.dayIndex);
       const startMinutes = Number(this.dataset.timeMinutes);
       if (Number.isNaN(dayIndex) || Number.isNaN(startMinutes) || dayIndex < 0 || dayIndex > 6) {
@@ -188,8 +195,12 @@ function plotSchedules(containerId, schedules) {
 
   const dayStart = START_HOUR * 60;
   const dayEnd = END_HOUR * 60;
+  appState.currentSchedulesById = {};
 
   schedules.forEach(item => {
+    if (item && item.id) {
+      appState.currentSchedulesById[Number(item.id)] = item;
+    }
     const dayIndex = normalizeDayIndex(item.day_of_week);
     const startMinutes = timeStringToMinutes(item.start_time);
     const endMinutes = timeStringToMinutes(item.end_time);
@@ -214,6 +225,10 @@ function plotSchedules(containerId, schedules) {
       return;
     }
 
+    startCell.classList.add('sched-occupied-cell');
+    if (item && item.id) {
+      startCell.dataset.scheduleId = String(item.id);
+    }
     startCell.rowSpan = rowspan;
     startCell.innerHTML = buildScheduleCellHtml(item);
 
@@ -267,6 +282,9 @@ function loadPrograms() {
   return fetch('schedule_actions.php?action=getPrograms')
     .then(r => r.json())
     .then(data => {
+      if (data.success && Array.isArray(data.data)) {
+        appState.programs = data.data;
+      }
       const dropdown = getEl('programDropdown');
       if (dropdown && data.success && Array.isArray(data.data)) {
         populateSelectOptions(dropdown, 'Select Program', data.data, 'id', p => `${p.program_code} - ${p.program_name}`);
@@ -350,19 +368,29 @@ function getClassById(classId) {
   return appState.classes.find(c => String(c.id) === String(classId)) || null;
 }
 
-function updateModalProgramFromClass(classId) {
-  const programInput = getEl('addScheduleProgram');
-  if (!programInput) return;
-
+function getProgramIdByClass(classId) {
   const classData = getClassById(classId);
-  if (!classData) {
-    programInput.value = '';
-    return;
-  }
+  return classData && classData.program_id ? String(classData.program_id) : '';
+}
 
-  const code = classData.program_code || '';
-  const name = classData.program_name || '';
-  programInput.value = `${code}${code && name ? ' - ' : ''}${name}`;
+function fillModalPrograms(selectedProgramId='') {
+  const programSelect = getEl('addScheduleProgramSelect');
+  populateSelectOptions(programSelect, 'Select Program', appState.programs, 'id', p => `${p.program_code} - ${p.program_name}`);
+  if (programSelect && selectedProgramId) {
+    programSelect.value = String(selectedProgramId);
+  }
+}
+
+function fillModalClassSections(programId, selectedClassId='') {
+  const classSelect = getEl('addScheduleClass');
+  const classes = programId
+    ? appState.classes.filter(c => String(c.program_id) === String(programId))
+    : [];
+
+  populateSelectOptions(classSelect, 'Select Class Section', classes, 'id', c => c.section_name);
+  if (classSelect && selectedClassId) {
+    classSelect.value = String(selectedClassId);
+  }
 }
 
 function updateClassModeBySubject(subjectId) {
@@ -422,7 +450,15 @@ function ensureAddScheduleModal() {
             <form id="addScheduleForm">
               <div class="mb-2">
                 <label class="form-label mb-1">Day</label>
-                <input id="addScheduleDay" type="text" class="form-control" readonly>
+                <select id="addScheduleDay" class="form-select" required>
+                  <option value="Monday">Monday</option>
+                  <option value="Tuesday">Tuesday</option>
+                  <option value="Wednesday">Wednesday</option>
+                  <option value="Thursday">Thursday</option>
+                  <option value="Friday">Friday</option>
+                  <option value="Saturday">Saturday</option>
+                  <option value="Sunday">Sunday</option>
+                </select>
               </div>
               <div class="row g-2 mb-2">
                 <div class="col-6">
@@ -436,7 +472,7 @@ function ensureAddScheduleModal() {
               </div>
               <div class="mb-2">
                 <label class="form-label mb-1">Program</label>
-                <input id="addScheduleProgram" type="text" class="form-control" readonly>
+                <select id="addScheduleProgramSelect" class="form-select" required></select>
               </div>
               <div class="mb-2">
                 <label class="form-label mb-1">Class Section</label>
@@ -464,6 +500,7 @@ function ensureAddScheduleModal() {
             </form>
           </div>
           <div class="modal-footer">
+            <button type="button" class="btn btn-danger me-auto d-none" id="deleteScheduleBtn">Delete</button>
             <button type="button" class="btn btn-primary btn-cancel-all" data-bs-dismiss="modal">Cancel</button>
             <button type="button" class="btn btn-primary" id="saveScheduleBtn">Save Schedule</button>
           </div>
@@ -476,11 +513,23 @@ function ensureAddScheduleModal() {
   scheduleModalInstance = bootstrap.Modal.getOrCreateInstance(getEl('addScheduleModal'));
 
   const classSelect = getEl('addScheduleClass');
+  const programSelect = getEl('addScheduleProgramSelect');
+  if (programSelect) {
+    programSelect.addEventListener('change', function () {
+      fillModalClassSections(this.value);
+      populateSelectOptions(getEl('addScheduleSubject'), 'Select Subject', [], 'id', s => `${s.subject_code} - ${s.subject_name}`);
+      updateClassModeBySubject('');
+    });
+  }
+
   if (classSelect) {
     classSelect.addEventListener('change', function () {
-      updateModalProgramFromClass(this.value);
+      const programId = getProgramIdByClass(this.value);
+      if (programSelect && programId) {
+        programSelect.value = programId;
+      }
       loadSubjectsByClass(this.value).then(subjects => {
-        populateSelectOptions(getEl('addScheduleSubject'), 'Optional Subject', subjects, 'id', s => `${s.subject_code} - ${s.subject_name}`);
+        populateSelectOptions(getEl('addScheduleSubject'), 'Select Subject', subjects, 'id', s => `${s.subject_code} - ${s.subject_name}`);
         updateClassModeBySubject(getEl('addScheduleSubject') ? getEl('addScheduleSubject').value : '');
       });
     });
@@ -498,6 +547,11 @@ function ensureAddScheduleModal() {
     saveBtn.addEventListener('click', saveScheduleFromModal);
   }
 
+  const deleteBtn = getEl('deleteScheduleBtn');
+  if (deleteBtn) {
+    deleteBtn.addEventListener('click', deleteScheduleFromModal);
+  }
+
   const modalEl = getEl('addScheduleModal');
   if (modalEl) {
     modalEl.addEventListener('hidden.bs.modal', function () {
@@ -507,6 +561,18 @@ function ensureAddScheduleModal() {
       if (form) form.reset();
       const saveBtnRef = getEl('saveScheduleBtn');
       if (saveBtnRef) saveBtnRef.disabled = false;
+      const deleteBtnRef = getEl('deleteScheduleBtn');
+      if (deleteBtnRef) deleteBtnRef.classList.add('d-none');
+      const dayRef = getEl('addScheduleDay');
+      if (dayRef) dayRef.disabled = false;
+      const programRef = getEl('addScheduleProgramSelect');
+      if (programRef) programRef.disabled = false;
+      const classRef = getEl('addScheduleClass');
+      if (classRef) classRef.disabled = false;
+      const modalTitleRef = modalEl.querySelector('.modal-title');
+      if (modalTitleRef) modalTitleRef.textContent = 'Add Schedule';
+      modalEl.dataset.mode = 'add';
+      modalEl.dataset.scheduleId = '';
 
       // Hard cleanup to prevent leftover overlay/z-index issues.
       document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
@@ -534,15 +600,33 @@ function openAddScheduleModal(payload) {
   const dayName = DAYS[payload.dayIndex];
 
   setModalAlert('');
-  getEl('addScheduleDay').value = dayName;
+  const dayInput = getEl('addScheduleDay');
+  dayInput.value = dayName;
+  dayInput.disabled = false;
   getEl('addScheduleStartTime').value = minutesToTimeString(payload.startMinutes);
   getEl('addScheduleEndTime').value = minutesToTimeString(payload.endMinutes);
-  getEl('addScheduleProgram').value = '';
 
-  populateSelectOptions(getEl('addScheduleClass'), '', appState.classes, 'id', c => c.section_name, false);
+  const modalEl = getEl('addScheduleModal');
+  if (modalEl) {
+    modalEl.dataset.mode = 'add';
+    modalEl.dataset.scheduleId = '';
+    const titleEl = modalEl.querySelector('.modal-title');
+    if (titleEl) titleEl.textContent = 'Add Schedule';
+  }
+  const saveBtn = getEl('saveScheduleBtn');
+  if (saveBtn) {
+    saveBtn.textContent = 'Save Schedule';
+  }
+  const deleteBtn = getEl('deleteScheduleBtn');
+  if (deleteBtn) {
+    deleteBtn.classList.add('d-none');
+  }
+
+  fillModalPrograms();
+  fillModalClassSections('');
   populateSelectOptions(getEl('addScheduleInstructor'), 'Optional Instructor', appState.instructors, 'id', i => `${i.instructor_code} - ${i.lastname}, ${i.firstname}`);
   populateSelectOptions(getEl('addScheduleRoom'), 'Optional Room', appState.rooms, 'id', rm => rm.room_name);
-  populateSelectOptions(getEl('addScheduleSubject'), 'Optional Subject', [], 'id', s => `${s.subject_code} - ${s.subject_name}`);
+  populateSelectOptions(getEl('addScheduleSubject'), 'Select Subject', [], 'id', s => `${s.subject_code} - ${s.subject_name}`);
   const classModeSelect = getEl('addScheduleClassMode');
   if (classModeSelect) {
     classModeSelect.disabled = false;
@@ -551,15 +635,22 @@ function openAddScheduleModal(payload) {
   }
 
   const classSelect = getEl('addScheduleClass');
+  const programSelect = getEl('addScheduleProgramSelect');
   const instructorSelect = getEl('addScheduleInstructor');
   const roomSelect = getEl('addScheduleRoom');
 
+  if (programSelect) programSelect.disabled = false;
   classSelect.disabled = false;
   instructorSelect.disabled = false;
   roomSelect.disabled = false;
 
+  let selectedProgramId = '';
   if (payload.contextType === 'class') {
+    selectedProgramId = getProgramIdByClass(payload.contextId);
+    fillModalPrograms(selectedProgramId);
+    fillModalClassSections(selectedProgramId, payload.contextId);
     classSelect.value = payload.contextId;
+    if (programSelect) programSelect.disabled = true;
     classSelect.disabled = true;
   } else if (payload.contextType === 'instructor') {
     instructorSelect.value = payload.contextId;
@@ -569,23 +660,120 @@ function openAddScheduleModal(payload) {
     roomSelect.disabled = true;
   }
 
+  if (!selectedProgramId && programSelect && programSelect.value) {
+    selectedProgramId = programSelect.value;
+    fillModalClassSections(selectedProgramId);
+  }
+
   const selectedClassId = classSelect.value;
-  updateModalProgramFromClass(selectedClassId);
   if (selectedClassId) {
     loadSubjectsByClass(selectedClassId).then(subjects => {
-      populateSelectOptions(getEl('addScheduleSubject'), 'Optional Subject', subjects, 'id', s => `${s.subject_code} - ${s.subject_name}`);
+      populateSelectOptions(getEl('addScheduleSubject'), 'Select Subject', subjects, 'id', s => `${s.subject_code} - ${s.subject_name}`);
       updateClassModeBySubject(getEl('addScheduleSubject') ? getEl('addScheduleSubject').value : '');
     });
   }
 
-  getEl('addScheduleModal').dataset.dayIndex = String(payload.dayIndex);
+  if (modalEl) {
+    modalEl.dataset.dayIndex = String(payload.dayIndex);
+  }
   scheduleModalInstance.show();
+}
+
+function openEditScheduleModal(scheduleId) {
+  const schedule = appState.currentSchedulesById[scheduleId];
+  if (!schedule) {
+    return;
+  }
+
+  ensureAddScheduleModal();
+  setModalAlert('');
+
+  const modalEl = getEl('addScheduleModal');
+  const dayInput = getEl('addScheduleDay');
+  const programSelect = getEl('addScheduleProgramSelect');
+  const classSelect = getEl('addScheduleClass');
+  const instructorSelect = getEl('addScheduleInstructor');
+  const roomSelect = getEl('addScheduleRoom');
+  const subjectSelect = getEl('addScheduleSubject');
+  const classModeSelect = getEl('addScheduleClassMode');
+  const saveBtn = getEl('saveScheduleBtn');
+  const deleteBtn = getEl('deleteScheduleBtn');
+
+  if (modalEl) {
+    modalEl.dataset.mode = 'edit';
+    modalEl.dataset.scheduleId = String(scheduleId);
+    const titleEl = modalEl.querySelector('.modal-title');
+    if (titleEl) titleEl.textContent = 'Edit Schedule';
+  }
+  if (saveBtn) {
+    saveBtn.textContent = 'Update Schedule';
+  }
+  if (deleteBtn) {
+    deleteBtn.classList.remove('d-none');
+  }
+
+  if (dayInput) {
+    dayInput.value = schedule.day_of_week || '';
+    dayInput.disabled = false;
+  }
+  getEl('addScheduleStartTime').value = String(schedule.start_time || '').slice(0, 5);
+  getEl('addScheduleEndTime').value = String(schedule.end_time || '').slice(0, 5);
+
+  const selectedProgramId = getProgramIdByClass(schedule.class_id);
+  fillModalPrograms(selectedProgramId);
+  fillModalClassSections(selectedProgramId, schedule.class_id);
+  populateSelectOptions(instructorSelect, 'Optional Instructor', appState.instructors, 'id', i => `${i.instructor_code} - ${i.lastname}, ${i.firstname}`);
+  populateSelectOptions(roomSelect, 'Optional Room', appState.rooms, 'id', rm => rm.room_name);
+
+  if (programSelect) {
+    programSelect.disabled = false;
+  }
+
+  if (classSelect) {
+    classSelect.disabled = false;
+    classSelect.value = schedule.class_id ? String(schedule.class_id) : '';
+  }
+  if (instructorSelect) {
+    instructorSelect.disabled = false;
+    instructorSelect.value = schedule.instructor_id ? String(schedule.instructor_id) : '';
+  }
+  if (roomSelect) {
+    roomSelect.disabled = false;
+    roomSelect.value = schedule.room_id ? String(schedule.room_id) : '';
+  }
+
+  if (classModeSelect) {
+    classModeSelect.disabled = false;
+    classModeSelect.innerHTML = '<option value="LEC">LEC</option><option value="LAB">LAB</option>';
+    classModeSelect.value = (schedule.class_mode === 'LAB') ? 'LAB' : 'LEC';
+  }
+
+  const selectedClassId = classSelect ? classSelect.value : '';
+  loadSubjectsByClass(selectedClassId).then(subjects => {
+    populateSelectOptions(subjectSelect, 'Select Subject', subjects, 'id', s => `${s.subject_code} - ${s.subject_name}`);
+    if (subjectSelect) {
+      const matched = subjects.find(s => String(s.subject_code || '') === String(schedule.subject_code || ''));
+      subjectSelect.value = matched ? String(matched.id) : '';
+      updateClassModeBySubject(subjectSelect.value);
+      if (classModeSelect) {
+        classModeSelect.value = (schedule.class_mode === 'LAB') ? 'LAB' : 'LEC';
+      }
+    }
+  });
+
+  scheduleModalInstance.show();
+}
+
+function getModalMode() {
+  const modalEl = getEl('addScheduleModal');
+  return modalEl && modalEl.dataset.mode ? modalEl.dataset.mode : 'add';
 }
 
 function saveScheduleFromModal() {
   if (modalBusy) return;
 
   const day = getEl('addScheduleDay').value;
+  const programId = getEl('addScheduleProgramSelect').value;
   const classId = getEl('addScheduleClass').value;
   const instructorId = getEl('addScheduleInstructor').value;
   const roomId = getEl('addScheduleRoom').value;
@@ -596,6 +784,18 @@ function saveScheduleFromModal() {
 
   if (!classId) {
     setModalAlert('Class section is required.');
+    return;
+  }
+  if (!programId) {
+    setModalAlert('Program is required.');
+    return;
+  }
+  if (!subjectId) {
+    setModalAlert('Subject is required.');
+    return;
+  }
+  if (!day) {
+    setModalAlert('Day is required.');
     return;
   }
   if (!startTime || !endTime) {
@@ -613,7 +813,13 @@ function saveScheduleFromModal() {
   setModalAlert('');
 
   const payload = new URLSearchParams();
-  payload.set('action', 'addSchedule');
+  const mode = getModalMode();
+  const scheduleId = getEl('addScheduleModal') ? Number(getEl('addScheduleModal').dataset.scheduleId || 0) : 0;
+
+  payload.set('action', mode === 'edit' ? 'updateSchedule' : 'addSchedule');
+  if (mode === 'edit' && scheduleId > 0) {
+    payload.set('id', String(scheduleId));
+  }
   payload.set('class_id', classId);
   payload.set('subject_id', subjectId || '');
   payload.set('class_mode', classMode || 'LEC');
@@ -650,6 +856,52 @@ function saveScheduleFromModal() {
     .finally(() => {
       modalBusy = false;
       if (saveBtn) saveBtn.disabled = false;
+    });
+}
+
+function deleteScheduleFromModal() {
+  if (modalBusy) return;
+
+  const mode = getModalMode();
+  const scheduleId = getEl('addScheduleModal') ? Number(getEl('addScheduleModal').dataset.scheduleId || 0) : 0;
+  if (mode !== 'edit' || scheduleId <= 0) {
+    return;
+  }
+
+  const proceed = confirm('Delete this schedule?');
+  if (!proceed) {
+    return;
+  }
+
+  modalBusy = true;
+  const deleteBtn = getEl('deleteScheduleBtn');
+  if (deleteBtn) deleteBtn.disabled = true;
+  setModalAlert('');
+
+  const payload = new URLSearchParams();
+  payload.set('action', 'deleteSchedule');
+  payload.set('id', String(scheduleId));
+
+  fetch('schedule_actions.php', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: payload.toString()
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (!data || !data.success) {
+        setModalAlert((data && data.message) ? data.message : 'Unable to delete schedule.');
+        return;
+      }
+      scheduleModalInstance.hide();
+      refreshScheduleByCurrentSelection();
+    })
+    .catch(() => {
+      setModalAlert('Failed to delete schedule. Please try again.');
+    })
+    .finally(() => {
+      modalBusy = false;
+      if (deleteBtn) deleteBtn.disabled = false;
     });
 }
 

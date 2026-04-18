@@ -26,6 +26,54 @@ function ensureScheduleClassModeColumn(PDO $conn): void {
     }
 }
 
+function findScheduleConflicts(PDO $conn, int $schoolyear_id, int $class_id, ?int $instructor_id, ?int $room_id, string $day_of_week, string $start_time, string $end_time, ?int $exclude_id = null): array {
+    $conflictClauses = ["s.class_id = :class_id_conflict"];
+    if ($instructor_id !== null && $instructor_id > 0) {
+        $conflictClauses[] = "s.instructor_id = :instructor_id_conflict";
+    }
+    if ($room_id !== null && $room_id > 0) {
+        $conflictClauses[] = "s.room_id = :room_id_conflict";
+    }
+
+    $conflictSql = "SELECT s.id, s.day_of_week, s.start_time, s.end_time,
+                           s.class_id, s.instructor_id, s.room_id,
+                           c.section_name AS class_section,
+                           CONCAT(i.lastname, ', ', i.firstname) AS instructor_name,
+                           r.room_name
+                    FROM schedules s
+                    LEFT JOIN class c ON c.id = s.class_id
+                    LEFT JOIN instructors i ON i.id = s.instructor_id
+                    LEFT JOIN rooms r ON r.id = s.room_id
+                    WHERE s.schoolyear_id = :schoolyear_id
+                      AND LOWER(s.day_of_week) = LOWER(:day_of_week)
+                      AND s.start_time < :new_end_time
+                      AND s.end_time > :new_start_time
+                      AND (" . implode(' OR ', $conflictClauses) . ")";
+
+    if ($exclude_id !== null && $exclude_id > 0) {
+        $conflictSql .= " AND s.id <> :exclude_id";
+    }
+
+    $conflictStmt = $conn->prepare($conflictSql);
+    $conflictStmt->bindValue(':schoolyear_id', $schoolyear_id, PDO::PARAM_INT);
+    $conflictStmt->bindValue(':day_of_week', $day_of_week, PDO::PARAM_STR);
+    $conflictStmt->bindValue(':new_start_time', $start_time, PDO::PARAM_STR);
+    $conflictStmt->bindValue(':new_end_time', $end_time, PDO::PARAM_STR);
+    $conflictStmt->bindValue(':class_id_conflict', $class_id, PDO::PARAM_INT);
+    if ($instructor_id !== null && $instructor_id > 0) {
+        $conflictStmt->bindValue(':instructor_id_conflict', $instructor_id, PDO::PARAM_INT);
+    }
+    if ($room_id !== null && $room_id > 0) {
+        $conflictStmt->bindValue(':room_id_conflict', $room_id, PDO::PARAM_INT);
+    }
+    if ($exclude_id !== null && $exclude_id > 0) {
+        $conflictStmt->bindValue(':exclude_id', $exclude_id, PDO::PARAM_INT);
+    }
+    $conflictStmt->execute();
+
+    return $conflictStmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
 try {
     $db = new Database();
     if ($action === 'getSchedule') {
@@ -122,7 +170,7 @@ try {
             exit;
         }
 
-        if ($class_id <= 0 || $day_of_week === '' || $start_time === '' || $end_time === '') {
+        if ($class_id <= 0 || $subject_id === null || $day_of_week === '' || $start_time === '' || $end_time === '') {
             echo json_encode(['success' => false, 'message' => 'Missing required fields']);
             exit;
         }
@@ -150,43 +198,7 @@ try {
             exit;
         }
 
-        $conflictClauses = ["s.class_id = :class_id_conflict"];
-        if ($instructor_id !== null && $instructor_id > 0) {
-            $conflictClauses[] = "s.instructor_id = :instructor_id_conflict";
-        }
-        if ($room_id !== null && $room_id > 0) {
-            $conflictClauses[] = "s.room_id = :room_id_conflict";
-        }
-
-        $conflictSql = "SELECT s.id, s.day_of_week, s.start_time, s.end_time,
-                               s.class_id, s.instructor_id, s.room_id,
-                               c.section_name AS class_section,
-                               CONCAT(i.lastname, ', ', i.firstname) AS instructor_name,
-                               r.room_name
-                        FROM schedules s
-                        LEFT JOIN class c ON c.id = s.class_id
-                        LEFT JOIN instructors i ON i.id = s.instructor_id
-                        LEFT JOIN rooms r ON r.id = s.room_id
-                        WHERE s.schoolyear_id = :schoolyear_id
-                          AND LOWER(s.day_of_week) = LOWER(:day_of_week)
-                          AND s.start_time < :new_end_time
-                          AND s.end_time > :new_start_time
-                          AND (" . implode(' OR ', $conflictClauses) . ")";
-
-        $conflictStmt = $conn->prepare($conflictSql);
-        $conflictStmt->bindValue(':schoolyear_id', $schoolyear_id, PDO::PARAM_INT);
-        $conflictStmt->bindValue(':day_of_week', $day_of_week, PDO::PARAM_STR);
-        $conflictStmt->bindValue(':new_start_time', $start_time, PDO::PARAM_STR);
-        $conflictStmt->bindValue(':new_end_time', $end_time, PDO::PARAM_STR);
-        $conflictStmt->bindValue(':class_id_conflict', $class_id, PDO::PARAM_INT);
-        if ($instructor_id !== null && $instructor_id > 0) {
-            $conflictStmt->bindValue(':instructor_id_conflict', $instructor_id, PDO::PARAM_INT);
-        }
-        if ($room_id !== null && $room_id > 0) {
-            $conflictStmt->bindValue(':room_id_conflict', $room_id, PDO::PARAM_INT);
-        }
-        $conflictStmt->execute();
-        $conflicts = $conflictStmt->fetchAll(PDO::FETCH_ASSOC);
+        $conflicts = findScheduleConflicts($conn, $schoolyear_id, $class_id, $instructor_id, $room_id, $day_of_week, $start_time, $end_time);
 
         if (!empty($conflicts)) {
             echo json_encode(['success' => false, 'message' => 'Schedule conflict detected', 'conflicts' => $conflicts]);
@@ -212,6 +224,114 @@ try {
         echo json_encode(['success' => true, 'id' => (int)$conn->lastInsertId()]);
         exit;
     }
+    if ($action === 'updateSchedule') {
+        $conn = $db->connect();
+        ensureScheduleClassModeColumn($conn);
+
+        $id = (int)($_POST['id'] ?? 0);
+        $schoolyear_id = (int)($_POST['schoolyear_id'] ?? 0);
+        $class_id = (int)($_POST['class_id'] ?? 0);
+        $class_mode = strtoupper(trim((string)($_POST['class_mode'] ?? 'LEC')));
+        $subject_id_raw = $_POST['subject_id'] ?? null;
+        $instructor_id_raw = $_POST['instructor_id'] ?? null;
+        $room_id_raw = $_POST['room_id'] ?? null;
+        $day_of_week = trim((string)($_POST['day_of_week'] ?? ''));
+        $start_time = trim((string)($_POST['start_time'] ?? ''));
+        $end_time = trim((string)($_POST['end_time'] ?? ''));
+
+        $subject_id = ($subject_id_raw === null || $subject_id_raw === '') ? null : (int)$subject_id_raw;
+        $instructor_id = ($instructor_id_raw === null || $instructor_id_raw === '') ? null : (int)$instructor_id_raw;
+        $room_id = ($room_id_raw === null || $room_id_raw === '') ? null : (int)$room_id_raw;
+
+        if ($id <= 0 || $class_id <= 0 || $subject_id === null || $day_of_week === '' || $start_time === '' || $end_time === '') {
+            echo json_encode(['success' => false, 'message' => 'Missing required fields']);
+            exit;
+        }
+
+        if ($schoolyear_id <= 0) {
+            $lookupStmt = $conn->prepare("SELECT schoolyear_id FROM schedules WHERE id = ? LIMIT 1");
+            $lookupStmt->execute([$id]);
+            $lookup = $lookupStmt->fetch(PDO::FETCH_ASSOC);
+            $schoolyear_id = $lookup ? (int)$lookup['schoolyear_id'] : 0;
+        }
+
+        if ($schoolyear_id <= 0) {
+            $schoolyear_id = getActiveSchoolYearId($conn);
+        }
+
+        if ($schoolyear_id <= 0) {
+            echo json_encode(['success' => false, 'message' => 'No active school year found']);
+            exit;
+        }
+
+        if (!in_array($class_mode, ['LEC', 'LAB'], true)) {
+            $class_mode = 'LEC';
+        }
+
+        $validDays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+        if (!in_array(strtolower($day_of_week), $validDays, true)) {
+            echo json_encode(['success' => false, 'message' => 'Invalid day of week']);
+            exit;
+        }
+
+        if (!preg_match('/^\d{2}:\d{2}(:\d{2})?$/', $start_time) || !preg_match('/^\d{2}:\d{2}(:\d{2})?$/', $end_time)) {
+            echo json_encode(['success' => false, 'message' => 'Invalid time format']);
+            exit;
+        }
+
+        if (strlen($start_time) === 5) $start_time .= ':00';
+        if (strlen($end_time) === 5) $end_time .= ':00';
+
+        if ($start_time >= $end_time) {
+            echo json_encode(['success' => false, 'message' => 'End time must be later than start time']);
+            exit;
+        }
+
+        $conflicts = findScheduleConflicts($conn, $schoolyear_id, $class_id, $instructor_id, $room_id, $day_of_week, $start_time, $end_time, $id);
+        if (!empty($conflicts)) {
+            echo json_encode(['success' => false, 'message' => 'Schedule conflict detected', 'conflicts' => $conflicts]);
+            exit;
+        }
+
+        $updateSql = "UPDATE schedules
+                      SET class_id = :class_id,
+                          subject_id = :subject_id,
+                          class_mode = :class_mode,
+                          instructor_id = :instructor_id,
+                          room_id = :room_id,
+                          day_of_week = :day_of_week,
+                          start_time = :start_time,
+                          end_time = :end_time
+                      WHERE id = :id AND schoolyear_id = :schoolyear_id";
+        $updateStmt = $conn->prepare($updateSql);
+        $updateStmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $updateStmt->bindValue(':schoolyear_id', $schoolyear_id, PDO::PARAM_INT);
+        $updateStmt->bindValue(':class_id', $class_id, PDO::PARAM_INT);
+        $updateStmt->bindValue(':subject_id', $subject_id, $subject_id === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
+        $updateStmt->bindValue(':class_mode', $class_mode, PDO::PARAM_STR);
+        $updateStmt->bindValue(':instructor_id', $instructor_id, $instructor_id === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
+        $updateStmt->bindValue(':room_id', $room_id, $room_id === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
+        $updateStmt->bindValue(':day_of_week', $day_of_week, PDO::PARAM_STR);
+        $updateStmt->bindValue(':start_time', $start_time, PDO::PARAM_STR);
+        $updateStmt->bindValue(':end_time', $end_time, PDO::PARAM_STR);
+        $updateStmt->execute();
+
+        echo json_encode(['success' => true]);
+        exit;
+    }
+    if ($action === 'deleteSchedule') {
+        $conn = $db->connect();
+        $id = (int)($_POST['id'] ?? 0);
+        if ($id <= 0) {
+            echo json_encode(['success' => false, 'message' => 'Invalid schedule id']);
+            exit;
+        }
+
+        $stmt = $conn->prepare("DELETE FROM schedules WHERE id = ?");
+        $stmt->execute([$id]);
+        echo json_encode(['success' => true]);
+        exit;
+    }
     if ($action === 'getPrograms') {
         $stmt = $db->connect()->query("SELECT id, program_code, program_name FROM programs ORDER BY program_code");
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -227,7 +347,7 @@ try {
             exit;
         }
 
-        $stmt = $conn->prepare("SELECT c.id, c.section_name, p.program_code, p.program_name
+                $stmt = $conn->prepare("SELECT c.id, c.section_name, p.id AS program_id, p.program_code, p.program_name
                                 FROM class c
                                 JOIN curriculum cu ON c.curriculum_id = cu.id
                                 JOIN programs p ON p.id = cu.program_id
@@ -253,7 +373,7 @@ try {
             exit;
         }
 
-        $stmt = $conn->prepare("SELECT c.id, c.section_name, p.program_code, p.program_name
+        $stmt = $conn->prepare("SELECT c.id, c.section_name, p.id AS program_id, p.program_code, p.program_name
                                 FROM class c
                                 LEFT JOIN curriculum cu ON cu.id = c.curriculum_id
                                 LEFT JOIN programs p ON p.id = cu.program_id

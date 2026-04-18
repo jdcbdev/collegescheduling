@@ -272,6 +272,7 @@
 
 .table-schedule-main td.sched-grid-cell {
     cursor: pointer;
+    padding: 0;
 }
 
 .table-schedule-main td.sched-grid-cell:hover {
