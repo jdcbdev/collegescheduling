@@ -1,28 +1,61 @@
 // schedule.js
-// Handles rendering of schedule tables for class, instructor, and room
+// Handles rendering, loading, and adding schedules for class/instructor/room views.
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const START_HOUR = 7;
 const END_HOUR = 20;
 const INTERVAL_MINUTES = 60;
 
+const appState = {
+  classes: [],
+  instructors: [],
+  rooms: [],
+  subjectsByClass: {}
+};
+
+let scheduleModalInstance = null;
+let modalBusy = false;
+
 document.addEventListener('DOMContentLoaded', function () {
   renderMainSchedule();
+  ensureAddScheduleModal();
   setupDropdowns();
 });
 
+function getEl(id) {
+  return document.getElementById(id);
+}
+
+function getActiveType() {
+  const typeEl = getEl('scheduleType');
+  return typeEl ? typeEl.value : 'class';
+}
+
+function getCurrentContextSelection() {
+  const type = getActiveType();
+  const classId = getEl('classSectionDropdown') ? getEl('classSectionDropdown').value : '';
+  const instructorId = getEl('instructorDropdown') ? getEl('instructorDropdown').value : '';
+  const roomId = getEl('roomDropdown') ? getEl('roomDropdown').value : '';
+
+  if (type === 'class') {
+    return { type, id: classId, label: 'class section' };
+  }
+  if (type === 'instructor') {
+    return { type, id: instructorId, label: 'instructor' };
+  }
+  return { type, id: roomId, label: 'room' };
+}
+
 function renderMainSchedule() {
-  const container = document.getElementById('scheduleTableContainer');
+  const container = getEl('scheduleTableContainer');
   if (container) {
-    container.innerHTML = generateScheduleTableHtml('class');
+    container.innerHTML = generateScheduleTableHtml();
+    bindGridCellClickHandlers();
   }
 }
 
 function clearMainSchedule() {
-  const container = document.getElementById('scheduleTableContainer');
-  if (container) {
-    container.innerHTML = generateScheduleTableHtml('class');
-  }
+  renderMainSchedule();
 }
 
 function to12H(hour, min) {
@@ -32,24 +65,32 @@ function to12H(hour, min) {
   return `${h} ${ampm}`;
 }
 
-function generateScheduleTableHtml(type, small=false) {
-  let html = `<table class="table table-bordered table-sm mb-0 ${small ? 'table-schedule-small' : 'table-schedule-main'}">
+function minutesToTimeString(totalMinutes) {
+  const hour = Math.floor(totalMinutes / 60);
+  const min = totalMinutes % 60;
+  return `${String(hour).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+}
+
+function generateScheduleTableHtml() {
+  let html = `<table class="table table-bordered table-sm mb-0 table-schedule-main">
     <thead><tr><th class="gc-time-head" style="width:52px"></th>`;
   DAYS.forEach(day => {
     html += `<th>${day}</th>`;
   });
   html += '</tr></thead><tbody>';
+
   for (let hour = START_HOUR; hour < END_HOUR; hour++) {
     for (let min = 0; min < 60; min += INTERVAL_MINUTES) {
       const minutes = hour * 60 + min;
       const timeLabel = to12H(hour, min);
       html += `<tr data-time-minutes="${minutes}"><td class="gc-time-cell"><span class="gc-time-label">${timeLabel}</span></td>`;
-      for (let d = 0; d < DAYS.length; d++) {
-        html += `<td data-day-index="${d}" data-time-minutes="${minutes}"></td>`;
+      for (let dayIndex = 0; dayIndex < DAYS.length; dayIndex++) {
+        html += `<td class="sched-grid-cell" data-day-index="${dayIndex}" data-time-minutes="${minutes}"></td>`;
       }
       html += '</tr>';
     }
   }
+
   html += '</tbody></table>';
   return html;
 }
@@ -87,9 +128,11 @@ function escapeHtml(value) {
     .replace(/'/g, '&#39;');
 }
 
-function buildScheduleCellHtml(item, small) {
-  const title = item.subject_code || item.subject_name || 'Scheduled';
+function buildScheduleCellHtml(item) {
+  const title = item.subject_name || item.subject_code;
   const details = [];
+  if (item.subject_code) details.push(item.subject_code);
+  if (item.class_mode) details.push(item.class_mode);
 
   if (item.class_section) details.push(item.class_section);
   if (item.instructor_name) details.push(item.instructor_name);
@@ -99,15 +142,45 @@ function buildScheduleCellHtml(item, small) {
   if (timeRange) details.push(timeRange);
 
   return `
-    <div class="p-1 h-100" style="background:#eaf4ff; border-left:3px solid #0d6efd; font-size:${small ? '10px' : '11px'}; line-height:1.25;">
+    <div class="p-1 h-100" style="background:#eaf4ff; border-left:3px solid #0d6efd; font-size:11px; line-height:1.25;">
       <div style="font-weight:600;">${escapeHtml(title)}</div>
       <div>${escapeHtml(details.join(' | '))}</div>
     </div>
   `;
 }
 
-function plotSchedules(containerId, schedules, small=false) {
-  const container = document.getElementById(containerId);
+function bindGridCellClickHandlers() {
+  const container = getEl('scheduleTableContainer');
+  if (!container) return;
+
+  const cells = container.querySelectorAll('td[data-day-index][data-time-minutes]');
+  cells.forEach(cell => {
+    cell.addEventListener('click', function () {
+      const context = getCurrentContextSelection();
+      if (!context.id) {
+        alert(`Please select a ${context.label} first before adding a schedule.`);
+        return;
+      }
+
+      const dayIndex = Number(this.dataset.dayIndex);
+      const startMinutes = Number(this.dataset.timeMinutes);
+      if (Number.isNaN(dayIndex) || Number.isNaN(startMinutes) || dayIndex < 0 || dayIndex > 6) {
+        return;
+      }
+
+      openAddScheduleModal({
+        dayIndex,
+        startMinutes,
+        endMinutes: Math.min(startMinutes + INTERVAL_MINUTES, END_HOUR * 60),
+        contextType: context.type,
+        contextId: context.id
+      });
+    });
+  });
+}
+
+function plotSchedules(containerId, schedules) {
+  const container = getEl(containerId);
   if (!container) return;
 
   const table = container.querySelector('table');
@@ -142,7 +215,7 @@ function plotSchedules(containerId, schedules, small=false) {
     }
 
     startCell.rowSpan = rowspan;
-    startCell.innerHTML = buildScheduleCellHtml(item, small);
+    startCell.innerHTML = buildScheduleCellHtml(item);
 
     for (let slot = startSlot + 1; slot < endSlot; slot++) {
       const coveredMinutes = dayStart + (slot * INTERVAL_MINUTES);
@@ -152,18 +225,20 @@ function plotSchedules(containerId, schedules, small=false) {
       }
     }
   });
+
+  bindGridCellClickHandlers();
 }
 
-function fetchAndRenderSchedules(type, id, containerId, small=false) {
+function fetchAndRenderSchedules(type, id, containerId) {
   if (!id) {
-    return;
+    return Promise.resolve();
   }
 
-  fetch(`schedule_actions.php?action=getSchedule&type=${encodeURIComponent(type)}&id=${encodeURIComponent(id)}`)
+  return fetch(`schedule_actions.php?action=getSchedule&type=${encodeURIComponent(type)}&id=${encodeURIComponent(id)}`)
     .then(r => r.json())
     .then(data => {
       if (data && data.success && Array.isArray(data.data)) {
-        plotSchedules(containerId, data.data, small);
+        plotSchedules(containerId, data.data);
       }
     })
     .catch(() => {
@@ -171,21 +246,424 @@ function fetchAndRenderSchedules(type, id, containerId, small=false) {
     });
 }
 
-// --- Dropdown population and event logic ---
-function setupDropdowns() {
-  const scheduleType = document.getElementById('scheduleType');
-  const scheduleLabel = document.querySelector('.schedule-label');
-  const programDropdown = document.getElementById('programDropdown');
-  const classSectionDropdown = document.getElementById('classSectionDropdown');
-  const instructorDropdown = document.getElementById('instructorDropdown');
-  const roomDropdown = document.getElementById('roomDropdown');
+function refreshScheduleByCurrentSelection() {
+  const current = getCurrentContextSelection();
+  renderMainSchedule();
+  if (current.id) {
+    return fetchAndRenderSchedules(current.type, current.id, 'scheduleTableContainer');
+  }
+  return Promise.resolve();
+}
 
-  function activeType() {
-    return scheduleType ? scheduleType.value : 'class';
+function populateSelectOptions(selectEl, placeholder, items, valueKey, labelBuilder, includePlaceholder=true) {
+  if (!selectEl) return;
+  const placeholderHtml = includePlaceholder ? `<option value="">${placeholder}</option>` : '';
+  selectEl.innerHTML = placeholderHtml + items
+    .map(item => `<option value="${item[valueKey]}">${escapeHtml(labelBuilder(item))}</option>`)
+    .join('');
+}
+
+function loadPrograms() {
+  return fetch('schedule_actions.php?action=getPrograms')
+    .then(r => r.json())
+    .then(data => {
+      const dropdown = getEl('programDropdown');
+      if (dropdown && data.success && Array.isArray(data.data)) {
+        populateSelectOptions(dropdown, 'Select Program', data.data, 'id', p => `${p.program_code} - ${p.program_name}`);
+      }
+    });
+}
+
+function loadInstructors() {
+  return fetch('schedule_actions.php?action=getInstructors')
+    .then(r => r.json())
+    .then(data => {
+      const dropdown = getEl('instructorDropdown');
+      if (data.success && Array.isArray(data.data)) {
+        appState.instructors = data.data;
+      }
+      if (dropdown && data.success && Array.isArray(data.data)) {
+        populateSelectOptions(dropdown, 'Select Instructor', data.data, 'id', i => `${i.instructor_code} - ${i.lastname}, ${i.firstname}`);
+      }
+    });
+}
+
+function loadRooms() {
+  return fetch('schedule_actions.php?action=getRooms')
+    .then(r => r.json())
+    .then(data => {
+      const dropdown = getEl('roomDropdown');
+      if (data.success && Array.isArray(data.data)) {
+        appState.rooms = data.data;
+      }
+      if (dropdown && data.success && Array.isArray(data.data)) {
+        populateSelectOptions(dropdown, 'Select Room', data.data, 'id', rm => rm.room_name);
+      }
+    });
+}
+
+function loadAllClassSections() {
+  return fetch('schedule_actions.php?action=getAllClassSections')
+    .then(r => r.json())
+    .then(data => {
+      if (data.success && Array.isArray(data.data)) {
+        appState.classes = data.data;
+      }
+    });
+}
+
+function loadClassSections(programId) {
+  const dropdown = getEl('classSectionDropdown');
+  if (!programId) {
+    if (dropdown) dropdown.innerHTML = '<option value="">Select Class Section</option>';
+    return Promise.resolve();
   }
 
+  return fetch(`schedule_actions.php?action=getClassSections&program_id=${encodeURIComponent(programId)}`)
+    .then(r => r.json())
+    .then(data => {
+      if (dropdown && data.success && Array.isArray(data.data)) {
+        populateSelectOptions(dropdown, 'Select Class Section', data.data, 'id', c => c.section_name);
+      }
+    });
+}
+
+function loadSubjectsByClass(classId) {
+  if (!classId) {
+    return Promise.resolve([]);
+  }
+  if (appState.subjectsByClass[classId]) {
+    return Promise.resolve(appState.subjectsByClass[classId]);
+  }
+
+  return fetch(`schedule_actions.php?action=getSubjectsByClass&class_id=${encodeURIComponent(classId)}`)
+    .then(r => r.json())
+    .then(data => {
+      const subjects = (data && data.success && Array.isArray(data.data)) ? data.data : [];
+      appState.subjectsByClass[classId] = subjects;
+      return subjects;
+    })
+    .catch(() => []);
+}
+
+function getClassById(classId) {
+  return appState.classes.find(c => String(c.id) === String(classId)) || null;
+}
+
+function updateModalProgramFromClass(classId) {
+  const programInput = getEl('addScheduleProgram');
+  if (!programInput) return;
+
+  const classData = getClassById(classId);
+  if (!classData) {
+    programInput.value = '';
+    return;
+  }
+
+  const code = classData.program_code || '';
+  const name = classData.program_name || '';
+  programInput.value = `${code}${code && name ? ' - ' : ''}${name}`;
+}
+
+function updateClassModeBySubject(subjectId) {
+  const classModeSelect = getEl('addScheduleClassMode');
+  const classId = getEl('addScheduleClass') ? getEl('addScheduleClass').value : '';
+  if (!classModeSelect || !classId) {
+    return;
+  }
+
+  const subjectList = appState.subjectsByClass[classId] || [];
+  const subject = subjectList.find(s => String(s.id) === String(subjectId));
+
+  classModeSelect.disabled = false;
+  classModeSelect.innerHTML = '<option value="LEC">LEC</option><option value="LAB">LAB</option>';
+
+  if (!subject) {
+    classModeSelect.value = 'LEC';
+    return;
+  }
+
+  const lecCredits = Number(subject.lec_credits || 0);
+  const labCredits = Number(subject.lab_credits || 0);
+
+  if (lecCredits > 0 && labCredits > 0) {
+    classModeSelect.value = 'LEC';
+    return;
+  }
+
+  if (labCredits > 0) {
+    classModeSelect.innerHTML = '<option value="LAB">LAB</option>';
+    classModeSelect.value = 'LAB';
+    classModeSelect.disabled = true;
+    return;
+  }
+
+  classModeSelect.innerHTML = '<option value="LEC">LEC</option>';
+  classModeSelect.value = 'LEC';
+  classModeSelect.disabled = true;
+}
+
+function ensureAddScheduleModal() {
+  if (getEl('addScheduleModal')) {
+    scheduleModalInstance = bootstrap.Modal.getOrCreateInstance(getEl('addScheduleModal'));
+    return;
+  }
+
+  const modalHtml = `
+    <div class="modal fade" id="addScheduleModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Add Schedule</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div id="addScheduleAlert" class="alert alert-danger d-none py-2" role="alert"></div>
+            <form id="addScheduleForm">
+              <div class="mb-2">
+                <label class="form-label mb-1">Day</label>
+                <input id="addScheduleDay" type="text" class="form-control" readonly>
+              </div>
+              <div class="row g-2 mb-2">
+                <div class="col-6">
+                  <label class="form-label mb-1">Start Time</label>
+                  <input id="addScheduleStartTime" type="time" class="form-control" required>
+                </div>
+                <div class="col-6">
+                  <label class="form-label mb-1">End Time</label>
+                  <input id="addScheduleEndTime" type="time" class="form-control" required>
+                </div>
+              </div>
+              <div class="mb-2">
+                <label class="form-label mb-1">Program</label>
+                <input id="addScheduleProgram" type="text" class="form-control" readonly>
+              </div>
+              <div class="mb-2">
+                <label class="form-label mb-1">Class Section</label>
+                <select id="addScheduleClass" class="form-select" required></select>
+              </div>
+              <div class="mb-2">
+                <label class="form-label mb-1">Subject</label>
+                <select id="addScheduleSubject" class="form-select"></select>
+              </div>
+              <div class="mb-2">
+                <label class="form-label mb-1">Class Mode</label>
+                <select id="addScheduleClassMode" class="form-select" required>
+                  <option value="LEC">LEC</option>
+                  <option value="LAB">LAB</option>
+                </select>
+              </div>
+              <div class="mb-2">
+                <label class="form-label mb-1">Instructor</label>
+                <select id="addScheduleInstructor" class="form-select"></select>
+              </div>
+              <div class="mb-0">
+                <label class="form-label mb-1">Room</label>
+                <select id="addScheduleRoom" class="form-select"></select>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-primary btn-cancel-all" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-primary" id="saveScheduleBtn">Save Schedule</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+  scheduleModalInstance = bootstrap.Modal.getOrCreateInstance(getEl('addScheduleModal'));
+
+  const classSelect = getEl('addScheduleClass');
+  if (classSelect) {
+    classSelect.addEventListener('change', function () {
+      updateModalProgramFromClass(this.value);
+      loadSubjectsByClass(this.value).then(subjects => {
+        populateSelectOptions(getEl('addScheduleSubject'), 'Optional Subject', subjects, 'id', s => `${s.subject_code} - ${s.subject_name}`);
+        updateClassModeBySubject(getEl('addScheduleSubject') ? getEl('addScheduleSubject').value : '');
+      });
+    });
+  }
+
+  const subjectSelect = getEl('addScheduleSubject');
+  if (subjectSelect) {
+    subjectSelect.addEventListener('change', function () {
+      updateClassModeBySubject(this.value);
+    });
+  }
+
+  const saveBtn = getEl('saveScheduleBtn');
+  if (saveBtn) {
+    saveBtn.addEventListener('click', saveScheduleFromModal);
+  }
+
+  const modalEl = getEl('addScheduleModal');
+  if (modalEl) {
+    modalEl.addEventListener('hidden.bs.modal', function () {
+      modalBusy = false;
+      setModalAlert('');
+      const form = getEl('addScheduleForm');
+      if (form) form.reset();
+      const saveBtnRef = getEl('saveScheduleBtn');
+      if (saveBtnRef) saveBtnRef.disabled = false;
+
+      // Hard cleanup to prevent leftover overlay/z-index issues.
+      document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+      document.body.classList.remove('modal-open');
+      document.body.style.removeProperty('overflow');
+      document.body.style.removeProperty('padding-right');
+    });
+  }
+}
+
+function setModalAlert(message) {
+  const alertBox = getEl('addScheduleAlert');
+  if (!alertBox) return;
+  if (!message) {
+    alertBox.textContent = '';
+    alertBox.classList.add('d-none');
+    return;
+  }
+  alertBox.textContent = message;
+  alertBox.classList.remove('d-none');
+}
+
+function openAddScheduleModal(payload) {
+  ensureAddScheduleModal();
+  const dayName = DAYS[payload.dayIndex];
+
+  setModalAlert('');
+  getEl('addScheduleDay').value = dayName;
+  getEl('addScheduleStartTime').value = minutesToTimeString(payload.startMinutes);
+  getEl('addScheduleEndTime').value = minutesToTimeString(payload.endMinutes);
+  getEl('addScheduleProgram').value = '';
+
+  populateSelectOptions(getEl('addScheduleClass'), '', appState.classes, 'id', c => c.section_name, false);
+  populateSelectOptions(getEl('addScheduleInstructor'), 'Optional Instructor', appState.instructors, 'id', i => `${i.instructor_code} - ${i.lastname}, ${i.firstname}`);
+  populateSelectOptions(getEl('addScheduleRoom'), 'Optional Room', appState.rooms, 'id', rm => rm.room_name);
+  populateSelectOptions(getEl('addScheduleSubject'), 'Optional Subject', [], 'id', s => `${s.subject_code} - ${s.subject_name}`);
+  const classModeSelect = getEl('addScheduleClassMode');
+  if (classModeSelect) {
+    classModeSelect.disabled = false;
+    classModeSelect.innerHTML = '<option value="LEC">LEC</option><option value="LAB">LAB</option>';
+    classModeSelect.value = 'LEC';
+  }
+
+  const classSelect = getEl('addScheduleClass');
+  const instructorSelect = getEl('addScheduleInstructor');
+  const roomSelect = getEl('addScheduleRoom');
+
+  classSelect.disabled = false;
+  instructorSelect.disabled = false;
+  roomSelect.disabled = false;
+
+  if (payload.contextType === 'class') {
+    classSelect.value = payload.contextId;
+    classSelect.disabled = true;
+  } else if (payload.contextType === 'instructor') {
+    instructorSelect.value = payload.contextId;
+    instructorSelect.disabled = true;
+  } else if (payload.contextType === 'room') {
+    roomSelect.value = payload.contextId;
+    roomSelect.disabled = true;
+  }
+
+  const selectedClassId = classSelect.value;
+  updateModalProgramFromClass(selectedClassId);
+  if (selectedClassId) {
+    loadSubjectsByClass(selectedClassId).then(subjects => {
+      populateSelectOptions(getEl('addScheduleSubject'), 'Optional Subject', subjects, 'id', s => `${s.subject_code} - ${s.subject_name}`);
+      updateClassModeBySubject(getEl('addScheduleSubject') ? getEl('addScheduleSubject').value : '');
+    });
+  }
+
+  getEl('addScheduleModal').dataset.dayIndex = String(payload.dayIndex);
+  scheduleModalInstance.show();
+}
+
+function saveScheduleFromModal() {
+  if (modalBusy) return;
+
+  const day = getEl('addScheduleDay').value;
+  const classId = getEl('addScheduleClass').value;
+  const instructorId = getEl('addScheduleInstructor').value;
+  const roomId = getEl('addScheduleRoom').value;
+  const subjectId = getEl('addScheduleSubject').value;
+  const classMode = getEl('addScheduleClassMode').value;
+  const startTime = getEl('addScheduleStartTime').value;
+  const endTime = getEl('addScheduleEndTime').value;
+
+  if (!classId) {
+    setModalAlert('Class section is required.');
+    return;
+  }
+  if (!startTime || !endTime) {
+    setModalAlert('Start time and end time are required.');
+    return;
+  }
+  if (startTime >= endTime) {
+    setModalAlert('End time must be later than start time.');
+    return;
+  }
+
+  modalBusy = true;
+  const saveBtn = getEl('saveScheduleBtn');
+  if (saveBtn) saveBtn.disabled = true;
+  setModalAlert('');
+
+  const payload = new URLSearchParams();
+  payload.set('action', 'addSchedule');
+  payload.set('class_id', classId);
+  payload.set('subject_id', subjectId || '');
+  payload.set('class_mode', classMode || 'LEC');
+  payload.set('instructor_id', instructorId || '');
+  payload.set('room_id', roomId || '');
+  payload.set('day_of_week', day);
+  payload.set('start_time', startTime);
+  payload.set('end_time', endTime);
+
+  fetch('schedule_actions.php', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: payload.toString()
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (!data || !data.success) {
+        if (data && Array.isArray(data.conflicts) && data.conflicts.length > 0) {
+          const first = data.conflicts[0];
+          const msg = `Conflict: ${first.day_of_week} ${String(first.start_time).slice(0, 5)}-${String(first.end_time).slice(0, 5)} (${first.class_section || 'No class'} | ${first.instructor_name || 'No instructor'} | ${first.room_name || 'No room'})`;
+          setModalAlert(msg);
+        } else {
+          setModalAlert((data && data.message) ? data.message : 'Unable to save schedule.');
+        }
+        return;
+      }
+
+      scheduleModalInstance.hide();
+      refreshScheduleByCurrentSelection();
+    })
+    .catch(() => {
+      setModalAlert('Failed to save schedule. Please try again.');
+    })
+    .finally(() => {
+      modalBusy = false;
+      if (saveBtn) saveBtn.disabled = false;
+    });
+}
+
+// --- Dropdown population and event logic ---
+function setupDropdowns() {
+  const scheduleType = getEl('scheduleType');
+  const scheduleLabel = document.querySelector('.schedule-label');
+  const programDropdown = getEl('programDropdown');
+  const classSectionDropdown = getEl('classSectionDropdown');
+  const instructorDropdown = getEl('instructorDropdown');
+  const roomDropdown = getEl('roomDropdown');
+
   function updateHeaderAndFilters() {
-    const type = activeType();
+    const type = getActiveType();
 
     if (scheduleLabel) {
       if (type === 'instructor') {
@@ -197,132 +675,58 @@ function setupDropdowns() {
       }
     }
 
-    if (programDropdown) {
-      programDropdown.classList.toggle('d-none', type !== 'class');
-    }
-    if (classSectionDropdown) {
-      classSectionDropdown.classList.toggle('d-none', type !== 'class');
-    }
-    if (instructorDropdown) {
-      instructorDropdown.classList.toggle('d-none', type !== 'instructor');
-    }
-    if (roomDropdown) {
-      roomDropdown.classList.toggle('d-none', type !== 'room');
-    }
+    if (programDropdown) programDropdown.classList.toggle('d-none', type !== 'class');
+    if (classSectionDropdown) classSectionDropdown.classList.toggle('d-none', type !== 'class');
+    if (instructorDropdown) instructorDropdown.classList.toggle('d-none', type !== 'instructor');
+    if (roomDropdown) roomDropdown.classList.toggle('d-none', type !== 'room');
   }
 
-  function renderByCurrentSelection() {
-    const type = activeType();
-    renderMainSchedule();
-
-    if (type === 'class' && classSectionDropdown && classSectionDropdown.value) {
-      fetchAndRenderSchedules('class', classSectionDropdown.value, 'scheduleTableContainer', false);
-      return;
-    }
-
-    if (type === 'instructor' && instructorDropdown && instructorDropdown.value) {
-      fetchAndRenderSchedules('instructor', instructorDropdown.value, 'scheduleTableContainer', false);
-      return;
-    }
-
-    if (type === 'room' && roomDropdown && roomDropdown.value) {
-      fetchAndRenderSchedules('room', roomDropdown.value, 'scheduleTableContainer', false);
-    }
-  }
-
-  // Load programs and set up class section loading
-  loadPrograms();
-  loadInstructors();
-  loadRooms();
-  updateHeaderAndFilters();
+  Promise.all([
+    loadPrograms(),
+    loadInstructors(),
+    loadRooms(),
+    loadAllClassSections()
+  ]).finally(() => {
+    updateHeaderAndFilters();
+    refreshScheduleByCurrentSelection();
+  });
 
   if (scheduleType) {
     scheduleType.addEventListener('change', function () {
       updateHeaderAndFilters();
-      renderByCurrentSelection();
+      refreshScheduleByCurrentSelection();
     });
   }
 
   if (programDropdown && classSectionDropdown) {
     programDropdown.addEventListener('change', function () {
-      loadClassSections(this.value);
-      if (activeType() === 'class') {
-        clearMainSchedule();
-      }
+      loadClassSections(this.value).finally(() => {
+        if (getActiveType() === 'class') {
+          clearMainSchedule();
+        }
+      });
     });
 
     classSectionDropdown.addEventListener('change', function () {
-      if (activeType() === 'class') {
-        renderByCurrentSelection();
+      if (getActiveType() === 'class') {
+        refreshScheduleByCurrentSelection();
       }
     });
   }
 
   if (instructorDropdown) {
     instructorDropdown.addEventListener('change', function () {
-      if (activeType() === 'instructor') {
-        renderByCurrentSelection();
+      if (getActiveType() === 'instructor') {
+        refreshScheduleByCurrentSelection();
       }
     });
   }
 
   if (roomDropdown) {
     roomDropdown.addEventListener('change', function () {
-      if (activeType() === 'room') {
-        renderByCurrentSelection();
+      if (getActiveType() === 'room') {
+        refreshScheduleByCurrentSelection();
       }
     });
   }
-}
-
-function loadPrograms() {
-  fetch('schedule_actions.php?action=getPrograms')
-    .then(r => r.json())
-    .then(data => {
-      const dropdown = document.getElementById('programDropdown');
-      if (dropdown && data.success && Array.isArray(data.data)) {
-        dropdown.innerHTML = '<option value="">Select Program</option>' +
-          data.data.map(p => `<option value="${p.id}">${p.program_code} - ${p.program_name}</option>`).join('');
-      }
-    });
-}
-
-function loadInstructors() {
-  fetch('schedule_actions.php?action=getInstructors')
-    .then(r => r.json())
-    .then(data => {
-      const dropdown = document.getElementById('instructorDropdown');
-      if (dropdown && data.success && Array.isArray(data.data)) {
-        dropdown.innerHTML = '<option value="">Select Instructor</option>' +
-          data.data.map(i => `<option value="${i.id}">${i.instructor_code} - ${i.lastname}, ${i.firstname}</option>`).join('');
-      }
-    });
-}
-
-function loadRooms() {
-  fetch('schedule_actions.php?action=getRooms')
-    .then(r => r.json())
-    .then(data => {
-      const dropdown = document.getElementById('roomDropdown');
-      if (dropdown && data.success && Array.isArray(data.data)) {
-        dropdown.innerHTML = '<option value="">Select Room</option>' +
-          data.data.map(rm => `<option value="${rm.id}">${rm.room_name}</option>`).join('');
-      }
-    });
-}
-
-function loadClassSections(programId) {
-  const dropdown = document.getElementById('classSectionDropdown');
-  if (!programId) {
-    if (dropdown) dropdown.innerHTML = '<option value="">Select Class Section</option>';
-    return;
-  }
-  fetch('schedule_actions.php?action=getClassSections&program_id=' + programId)
-    .then(r => r.json())
-    .then(data => {
-      if (dropdown && data.success && Array.isArray(data.data)) {
-        dropdown.innerHTML = '<option value="">Select Class Section</option>' +
-          data.data.map(c => `<option value="${c.id}">${c.section_name}</option>`).join('');
-      }
-    });
 }

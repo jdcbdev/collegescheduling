@@ -270,6 +270,14 @@
     background: #fff;
 }
 
+.table-schedule-main td.sched-grid-cell {
+    cursor: pointer;
+}
+
+.table-schedule-main td.sched-grid-cell:hover {
+    background: #f1f8ff;
+}
+
 .table-schedule-main .gc-time-cell,
 .table-schedule-small .gc-time-cell {
     width: 52px;
