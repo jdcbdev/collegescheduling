@@ -29,6 +29,7 @@ const appState = {
 };
 
 let scheduleModalInstance = null;
+let subjectProgressModalInstance = null;
 let modalBusy = false;
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -513,7 +514,7 @@ function loadAllClassSections() {
 function loadClassSections(programId) {
   const dropdown = getEl('classSectionDropdown');
   if (!programId) {
-    if (dropdown) dropdown.innerHTML = '<option value="">Select Class Section</option>';
+    if (dropdown) dropdown.innerHTML = '<option value="">Select Class</option>';
     return Promise.resolve();
   }
 
@@ -521,7 +522,7 @@ function loadClassSections(programId) {
     .then(r => r.json())
     .then(data => {
       if (dropdown && data.success && Array.isArray(data.data)) {
-        populateSelectOptions(dropdown, 'Select Class Section', data.data, 'id', c => c.section_name);
+        populateSelectOptions(dropdown, 'Select Class', data.data, 'id', c => c.section_name);
       }
     });
 }
@@ -567,7 +568,7 @@ function fillModalClassSections(programId, selectedClassId='') {
     ? appState.classes.filter(c => String(c.program_id) === String(programId))
     : [];
 
-  populateSelectOptions(classSelect, 'Select Class Section', classes, 'id', c => c.section_name);
+  populateSelectOptions(classSelect, 'Select Class', classes, 'id', c => c.section_name);
   if (classSelect && selectedClassId) {
     classSelect.value = String(selectedClassId);
   }
@@ -1201,6 +1202,14 @@ function setupDropdowns() {
   const classSectionDropdown = getEl('classSectionDropdown');
   const instructorDropdown = getEl('instructorDropdown');
   const roomDropdown = getEl('roomDropdown');
+  const btnSubjectProgress = getEl('btnSubjectProgress');
+
+  function syncSubjectProgressBtn() {
+    if (!btnSubjectProgress) return;
+    const type = getActiveType();
+    const hasClass = classSectionDropdown && classSectionDropdown.value;
+    btnSubjectProgress.classList.toggle('d-none', type !== 'class' || !hasClass);
+  }
 
   function updateHeaderAndFilters() {
     const type = getActiveType();
@@ -1210,6 +1219,7 @@ function setupDropdowns() {
     if (classSectionDropdown) classSectionDropdown.classList.toggle('d-none', type !== 'class');
     if (instructorDropdown) instructorDropdown.classList.toggle('d-none', type !== 'instructor');
     if (roomDropdown) roomDropdown.classList.toggle('d-none', type !== 'room');
+    syncSubjectProgressBtn();
   }
 
   Promise.all([
@@ -1235,6 +1245,7 @@ function setupDropdowns() {
         if (getActiveType() === 'class') {
           clearMainSchedule();
         }
+        syncSubjectProgressBtn();
       });
     });
 
@@ -1242,6 +1253,14 @@ function setupDropdowns() {
       if (getActiveType() === 'class') {
         refreshScheduleByCurrentSelection();
       }
+      syncSubjectProgressBtn();
+    });
+  }
+
+  if (btnSubjectProgress) {
+    btnSubjectProgress.addEventListener('click', function () {
+      const classId = classSectionDropdown ? classSectionDropdown.value : '';
+      if (classId) openSubjectProgressModal(classId);
     });
   }
 
@@ -1261,3 +1280,135 @@ function setupDropdowns() {
     });
   }
 }
+
+function ensureSubjectProgressModal() {
+  if (getEl('subjectProgressModal')) {
+    subjectProgressModalInstance = bootstrap.Modal.getOrCreateInstance(getEl('subjectProgressModal'));
+    return;
+  }
+
+  const html = `
+    <div class="modal fade" id="subjectProgressModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="subjectProgressModalTitle">Subject Progress</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body pt-2">
+            <div id="subjectProgressContent"></div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.insertAdjacentHTML('beforeend', html);
+  subjectProgressModalInstance = bootstrap.Modal.getOrCreateInstance(getEl('subjectProgressModal'));
+}
+
+function openSubjectProgressModal(classId) {
+  ensureSubjectProgressModal();
+
+  const classData = getClassById(classId);
+  const sectionName = classData ? classData.section_name : `Class #${classId}`;
+  const titleEl = getEl('subjectProgressModalTitle');
+  const contentEl = getEl('subjectProgressContent');
+
+  if (titleEl) titleEl.textContent = `Subject Progress — ${sectionName}`;
+  if (contentEl) contentEl.innerHTML = '<div class="p-4 text-center text-muted">Loading…</div>';
+
+  subjectProgressModalInstance.show();
+
+  const semesterMatch = appState.activeSchoolYearText.match(/(1st Sem|2nd Sem|Summer)/);
+  const semester = semesterMatch ? semesterMatch[1] : '1st Sem';
+
+  loadSubjectsByClass(classId).then(subjects => {
+    if (!subjects || subjects.length === 0) {
+      if (contentEl) contentEl.innerHTML = '<div class="p-4 text-center text-muted">No subjects found for this class.</div>';
+      return;
+    }
+
+    let totalModes = 0;
+    let doneModes = 0;
+    let rows = '';
+
+    subjects.forEach(subject => {
+      const hasLec = Number(subject.lec_credits || 0) > 0;
+      const hasLab = Number(subject.lab_credits || 0) > 0;
+      const modes = [];
+      if (hasLec) modes.push('LEC');
+      if (hasLab) modes.push('LAB');
+      if (modes.length === 0) modes.push('LEC');
+
+      modes.forEach((mode, modeIdx) => {
+        const required = calculateRequiredHours(subject, mode, semester);
+        const scheduled = calculateScheduledHours(subject.subject_code, mode);
+        const remaining = Math.max(0, required - scheduled);
+        const isDone = required > 0 && remaining <= 0;
+
+        totalModes++;
+        if (isDone) doneModes++;
+
+        const statusIcon = isDone
+          ? '<span class="text-success"><i class="ti ti-circle-check-filled fs-5"></i></span>'
+          : '<span class="text-danger"><i class="ti ti-circle-x fs-5"></i></span>';
+
+        const modeBadge = mode === 'LAB'
+          ? '<span class="badge bg-info text-dark">LAB</span>'
+          : '<span class="badge bg-secondary">LEC</span>';
+
+        // Only show subject code & name on the first mode row; subsequent rows are a continuation
+        const codeCell = modeIdx === 0
+          ? `<td class="text-nowrap align-middle" rowspan="${modes.length}">${escapeHtml(subject.subject_code)}</td>`
+          : '';
+        const nameCell = modeIdx === 0
+          ? `<td class="align-middle" rowspan="${modes.length}">${escapeHtml(subject.subject_name)}</td>`
+          : '';
+
+        rows += `<tr${isDone ? '' : ' class="table-warning"'}>
+          ${codeCell}
+          ${nameCell}
+          <td class="text-center align-middle">${modeBadge}</td>
+          <td class="text-center align-middle">${required}h</td>
+          <td class="text-center align-middle">${scheduled}h</td>
+          <td class="text-center align-middle">${remaining > 0 ? remaining + 'h' : '<span class="text-success">—</span>'}</td>
+          <td class="text-center align-middle">${statusIcon}</td>
+        </tr>`;
+      });
+    });
+
+    const pct = totalModes > 0 ? Math.round((doneModes / totalModes) * 100) : 0;
+    const progressColor = pct === 100 ? 'bg-success' : pct >= 50 ? 'bg-warning' : 'bg-danger';
+
+    const tableHtml = `
+      <div class="px-3 pt-2 pb-2 d-flex align-items-center gap-3">
+        <small class="text-muted fw-semibold">${doneModes} / ${totalModes} scheduled</small>
+        <div class="progress flex-grow-1" style="height:8px;">
+          <div class="progress-bar ${progressColor}" style="width:${pct}%"></div>
+        </div>
+        <small class="text-muted">${pct}%</small>
+      </div>
+      <table class="table table-sm table-bordered mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Code</th>
+            <th>Subject</th>
+            <th class="text-center">Mode</th>
+            <th class="text-center">Required</th>
+            <th class="text-center">Scheduled</th>
+            <th class="text-center">Remaining</th>
+            <th class="text-center">Status</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    `;
+
+    if (contentEl) contentEl.innerHTML = tableHtml;
+  });
+}
+

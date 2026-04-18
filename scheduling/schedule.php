@@ -33,6 +33,9 @@ $navBasePath = '../';
                     <select id="classSectionDropdown" class="form-select form-select w-auto">
                       <option value="">Select Class</option>
                     </select>
+                    <button id="btnSubjectProgress" type="button" class="btn btn-outline-secondary d-none" title="View Subject Progress">
+                      <i class="ti ti-checklist"></i>
+                    </button>
                     <select id="instructorDropdown" class="form-select form-select w-auto d-none">
                       <option value="">Select Instructor</option>
                     </select>
@@ -41,7 +44,7 @@ $navBasePath = '../';
                     </select>
                   </div>
                 </div>
-                <div class="card-body p-4">
+                <div class="card-body p-4 pt-2">
                   <div id="scheduleTableContainer" class="table-responsive"></div>
                 </div>
               </div>
