@@ -5,6 +5,16 @@ const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'
 const START_HOUR = 7;
 const END_HOUR = 20;
 const INTERVAL_MINUTES = 30;
+const EVENT_PALETTE = [
+  { bg: '#e8f0fe', border: '#1a73e8' },
+  { bg: '#e6f4ea', border: '#188038' },
+  { bg: '#fef7e0', border: '#f9ab00' },
+  { bg: '#fce8e6', border: '#d93025' },
+  { bg: '#f3e8fd', border: '#9334e6' },
+  { bg: '#e0f7fa', border: '#00838f' },
+  { bg: '#fff3e0', border: '#ef6c00' },
+  { bg: '#ede7f6', border: '#5e35b1' }
+];
 
 const appState = {
   programs: [],
@@ -130,7 +140,35 @@ function escapeHtml(value) {
     .replace(/'/g, '&#39;');
 }
 
-function buildScheduleCellHtml(item) {
+function hashString(value) {
+  const str = String(value || '');
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) - hash) + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash);
+}
+
+function getColorKeyByView(item, viewType) {
+  const subject = item.subject_code || item.subject_name || '';
+  const section = item.class_section || '';
+  const instructor = item.instructor_name || '';
+
+  if (viewType === 'instructor') {
+    return `${section}|${subject}`;
+  }
+
+  return `${subject}|${instructor}|${section}`;
+}
+
+function getEventPaletteColor(item, viewType) {
+  const key = getColorKeyByView(item, viewType);
+  const index = hashString(key) % EVENT_PALETTE.length;
+  return EVENT_PALETTE[index];
+}
+
+function buildScheduleCellHtml(item, viewType='class') {
   const title = item.subject_name || 'Scheduled';
   const details = [];
   if (item.class_mode) details.push(item.class_mode);
@@ -140,13 +178,14 @@ function buildScheduleCellHtml(item) {
   if (timeRange) details.push(timeRange);
 
   const scheduleId = item && item.id ? Number(item.id) : 0;
+  const palette = getEventPaletteColor(item, viewType);
 
   const detailsLine = details.length ? `<div>${escapeHtml(details.join(' | '))}</div>` : '';
   const instructorLine = item.instructor_name ? `<div>${escapeHtml(item.instructor_name)}</div>` : '';
   const roomLine = item.room_name ? `<div>${escapeHtml(item.room_name)}</div>` : '';
 
   return `
-    <div class="p-1 h-100 sched-event-card" data-schedule-id="${scheduleId}" style="background:#eaf4ff; border-left:3px solid #0d6efd; font-size:11px; line-height:1.25;">
+    <div class="p-1 h-100 sched-event-card" data-schedule-id="${scheduleId}" style="background:${palette.bg}; border-left:3px solid ${palette.border}; font-size:11px; line-height:1.25;">
       <div style="font-weight:600;">${escapeHtml(title)}</div>
       ${detailsLine}
       ${instructorLine}
@@ -205,7 +244,7 @@ function bindGridCellClickHandlers() {
   });
 }
 
-function plotSchedules(containerId, schedules) {
+function plotSchedules(containerId, schedules, viewType='class') {
   const container = getEl(containerId);
   if (!container) return;
 
@@ -249,7 +288,7 @@ function plotSchedules(containerId, schedules) {
       startCell.dataset.scheduleId = String(item.id);
     }
     startCell.rowSpan = rowspan;
-    startCell.innerHTML = buildScheduleCellHtml(item);
+    startCell.innerHTML = buildScheduleCellHtml(item, viewType);
 
     for (let slot = startSlot + 1; slot < endSlot; slot++) {
       const coveredMinutes = dayStart + (slot * INTERVAL_MINUTES);
@@ -273,7 +312,7 @@ function fetchAndRenderSchedules(type, id, containerId) {
     .then(r => r.json())
     .then(data => {
       if (data && data.success && Array.isArray(data.data)) {
-        plotSchedules(containerId, data.data);
+        plotSchedules(containerId, data.data, type);
       }
     })
     .catch(() => {
