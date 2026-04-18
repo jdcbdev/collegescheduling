@@ -260,7 +260,7 @@
 
 .table-schedule-main tbody tr,
 .table-schedule-small tbody tr {
-    height: 56px;
+    height: 28px;
 }
 
 .table-schedule-main tbody td,
@@ -271,12 +271,34 @@
 }
 
 .table-schedule-main td.sched-grid-cell {
-    cursor: pointer;
+    padding: 0;
+}
+
+.table-schedule-main td.sched-occupied-cell {
+    cursor: default;
+    pointer-events: none;
+    position: relative;
     padding: 0;
 }
 
 .table-schedule-main td.sched-grid-cell:hover {
     background: #f1f8ff;
+}
+
+.table-schedule-main td.sched-occupied-cell:hover {
+    background: #fff;
+}
+
+.table-schedule-main .sched-event-card {
+    display: block;
+    position: absolute;
+    inset: 0;
+    height: auto;
+    width: auto;
+    box-sizing: border-box;
+    margin: 0;
+    cursor: pointer;
+    pointer-events: auto;
 }
 
 .table-schedule-main .gc-time-cell,
@@ -311,4 +333,9 @@
     line-height: 1;
     background: transparent;
     padding: 0;
+}
+
+.table-schedule-main .gc-time-label:empty,
+.table-schedule-small .gc-time-label:empty {
+    visibility: hidden;
 }

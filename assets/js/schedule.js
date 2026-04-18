@@ -4,7 +4,7 @@
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const START_HOUR = 7;
 const END_HOUR = 20;
-const INTERVAL_MINUTES = 60;
+const INTERVAL_MINUTES = 30;
 
 const appState = {
   programs: [],
@@ -64,7 +64,7 @@ function to12H(hour, min) {
   let h = hour % 12;
   if (h === 0) h = 12;
   const ampm = hour < 12 ? 'AM' : 'PM';
-  return `${h} ${ampm}`;
+  return `${h}:${min === 0 ? '00' : '30'} ${ampm}`;
 }
 
 function minutesToTimeString(totalMinutes) {
@@ -84,7 +84,7 @@ function generateScheduleTableHtml() {
   for (let hour = START_HOUR; hour < END_HOUR; hour++) {
     for (let min = 0; min < 60; min += INTERVAL_MINUTES) {
       const minutes = hour * 60 + min;
-      const timeLabel = to12H(hour, min);
+      const timeLabel = min === 0 ? to12H(hour, min) : '';
       html += `<tr data-time-minutes="${minutes}"><td class="gc-time-cell"><span class="gc-time-label">${timeLabel}</span></td>`;
       for (let dayIndex = 0; dayIndex < DAYS.length; dayIndex++) {
         html += `<td class="sched-grid-cell" data-day-index="${dayIndex}" data-time-minutes="${minutes}"></td>`;
@@ -142,12 +142,30 @@ function buildScheduleCellHtml(item) {
   const timeRange = (item.start_time && item.end_time) ? `${item.start_time.slice(0, 5)} - ${item.end_time.slice(0, 5)}` : '';
   if (timeRange) details.push(timeRange);
 
+  const scheduleId = item && item.id ? Number(item.id) : 0;
+
   return `
-    <div class="p-1 h-100" style="background:#eaf4ff; border-left:3px solid #0d6efd; font-size:11px; line-height:1.25;">
+    <div class="p-1 h-100 sched-event-card" data-schedule-id="${scheduleId}" style="background:#eaf4ff; border-left:3px solid #0d6efd; font-size:11px; line-height:1.25;">
       <div style="font-weight:600;">${escapeHtml(title)}</div>
       <div>${escapeHtml(details.join(' | '))}</div>
     </div>
   `;
+}
+
+function bindScheduleCardClickHandlers() {
+  const container = getEl('scheduleTableContainer');
+  if (!container) return;
+
+  const cards = container.querySelectorAll('.sched-event-card[data-schedule-id]');
+  cards.forEach(card => {
+    card.addEventListener('click', function (event) {
+      event.stopPropagation();
+      const scheduleId = Number(this.dataset.scheduleId || 0);
+      if (scheduleId > 0 && appState.currentSchedulesById[scheduleId]) {
+        openEditScheduleModal(scheduleId);
+      }
+    });
+  });
 }
 
 function bindGridCellClickHandlers() {
@@ -163,9 +181,7 @@ function bindGridCellClickHandlers() {
         return;
       }
 
-      const scheduleId = this.dataset.scheduleId ? Number(this.dataset.scheduleId) : 0;
-      if (scheduleId > 0 && appState.currentSchedulesById[scheduleId]) {
-        openEditScheduleModal(scheduleId);
+      if (this.classList.contains('sched-occupied-cell')) {
         return;
       }
 
@@ -242,6 +258,7 @@ function plotSchedules(containerId, schedules) {
   });
 
   bindGridCellClickHandlers();
+  bindScheduleCardClickHandlers();
 }
 
 function fetchAndRenderSchedules(type, id, containerId) {
