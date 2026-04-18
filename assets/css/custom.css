@@ -201,6 +201,56 @@
     max-width: none !important;
 }
 
+/* ── Desktop mini (icon-only) sidebar ── */
+@media (min-width: 1200px) {
+  #main-wrapper.mini-sidebar .left-sidebar {
+    width: 60px;
+  }
+
+  /* hide text labels and section caps */
+  #main-wrapper.mini-sidebar .hide-menu,
+  #main-wrapper.mini-sidebar .nav-small-cap .hide-menu,
+  #main-wrapper.mini-sidebar .brand-logo span,
+  #main-wrapper.mini-sidebar .sidebar-divider {
+    display: none !important;
+  }
+
+  /* show icon in place of section cap text */
+  #main-wrapper.mini-sidebar .nav-small-cap .nav-small-cap-icon {
+    display: flex !important;
+    justify-content: center;
+    width: 100%;
+  }
+
+  /* centre the icons inside each link */
+  #main-wrapper.mini-sidebar .sidebar-nav ul .sidebar-item .sidebar-link {
+    justify-content: center;
+    padding: 9px 0;
+    gap: 0;
+  }
+
+  /* scroll area fills the slim sidebar */
+  #main-wrapper.mini-sidebar .left-sidebar .scroll-sidebar {
+    padding: 0 4px;
+  }
+
+  /* logo area: just the image, centred */
+  #main-wrapper.mini-sidebar .brand-logo {
+    justify-content: center;
+    padding: 12px 8px;
+  }
+
+  /* body and header adjust to the new width */
+  #main-wrapper.mini-sidebar[data-layout=vertical][data-sidebartype=mini-sidebar] .body-wrapper,
+  #main-wrapper.mini-sidebar[data-layout=vertical] .body-wrapper {
+    margin-left: 60px;
+  }
+
+  #main-wrapper.mini-sidebar[data-layout=vertical][data-header-position=fixed] .app-header {
+    width: calc(100% - 60px);
+  }
+}
+
 .card, .card-body{
     color: #29343d;
 }
@@ -338,4 +388,12 @@
 .table-schedule-main .gc-time-label:empty,
 .table-schedule-small .gc-time-label:empty {
     visibility: hidden;
+}
+
+.body-wrapper .body-wrapper-inner{
+    border-radius: 0 !important;
+}
+
+.container-fluid.content-page{
+    padding-top: 35px !important;
 }

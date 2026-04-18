@@ -18,15 +18,22 @@
     <!-- Sidebar navigation -->
     <nav class="sidebar-nav scroll-sidebar" data-simplebar="">
       <ul id="sidebarnav">
-        <!-- Dashboard -->
+
+        <!-- Scheduling -->
         <li class="nav-small-cap">
           <iconify-icon icon="solar:menu-dots-linear" class="nav-small-cap-icon fs-4"></iconify-icon>
-          <span class="hide-menu">Main</span>
+          <span class="hide-menu">Scheduling</span>
         </li>
         <li class="sidebar-item">
-          <a class="sidebar-link<?= $activePage === 'dashboard' ? ' active' : '' ?>" href="<?= htmlspecialchars($navBasePath) ?>home.php" aria-expanded="false">
-            <iconify-icon icon="solar:home-smile-line-duotone"></iconify-icon>
-            <span class="hide-menu">Dashboard</span>
+          <a class="sidebar-link<?= $activePage === 'schedule' ? ' active' : '' ?>" href="<?= htmlspecialchars($navBasePath) ?>scheduling/schedule.php" aria-expanded="false" data-bs-toggle="tooltip" data-bs-placement="right" title="Schedules">
+            <iconify-icon icon="solar:calendar-mark-line-duotone"></iconify-icon>
+            <span class="hide-menu">Schedules</span>
+          </a>
+        </li>
+        <li class="sidebar-item">
+          <a class="sidebar-link<?= $activePage === 'classes' ? ' active' : '' ?>" href="<?= htmlspecialchars($navBasePath) ?>scheduling/classes.php" aria-expanded="false" data-bs-toggle="tooltip" data-bs-placement="right" title="Class">
+            <iconify-icon icon="solar:layers-line-duotone"></iconify-icon>
+            <span class="hide-menu">Class</span>
           </a>
         </li>
 
@@ -36,33 +43,15 @@
           <span class="hide-menu">Academic</span>
         </li>
         <li class="sidebar-item">
-          <a class="sidebar-link<?= $activePage === 'curriculum' ? ' active' : '' ?>" href="<?= htmlspecialchars($navBasePath) ?>academic/curriculum.php" aria-expanded="false">
+          <a class="sidebar-link<?= $activePage === 'curriculum' ? ' active' : '' ?>" href="<?= htmlspecialchars($navBasePath) ?>academic/curriculum.php" aria-expanded="false" data-bs-toggle="tooltip" data-bs-placement="right" title="Curriculum">
             <iconify-icon icon="solar:diploma-line-duotone"></iconify-icon>
             <span class="hide-menu">Curriculum</span>
           </a>
         </li>
         <li class="sidebar-item">
-          <a class="sidebar-link<?= $activePage === 'programs' ? ' active' : '' ?>" href="<?= htmlspecialchars($navBasePath) ?>academic/programs.php" aria-expanded="false">
+          <a class="sidebar-link<?= $activePage === 'programs' ? ' active' : '' ?>" href="<?= htmlspecialchars($navBasePath) ?>academic/programs.php" aria-expanded="false" data-bs-toggle="tooltip" data-bs-placement="right" title="Programs">
             <iconify-icon icon="solar:notebook-bookmark-broken"></iconify-icon>
             <span class="hide-menu">Programs</span>
-          </a>
-        </li>
-
-        <!-- Scheduling -->
-        <li class="nav-small-cap">
-          <iconify-icon icon="solar:menu-dots-linear" class="nav-small-cap-icon fs-4"></iconify-icon>
-          <span class="hide-menu">Scheduling</span>
-        </li>
-        <li class="sidebar-item">
-          <a class="sidebar-link<?= $activePage === 'classes' ? ' active' : '' ?>" href="<?= htmlspecialchars($navBasePath) ?>scheduling/classes.php" aria-expanded="false">
-            <iconify-icon icon="solar:layers-line-duotone"></iconify-icon>
-            <span class="hide-menu">Class Sections</span>
-          </a>
-        </li>
-        <li class="sidebar-item">
-          <a class="sidebar-link<?= $activePage === 'schedule' ? ' active' : '' ?>" href="<?= htmlspecialchars($navBasePath) ?>scheduling/schedule.php" aria-expanded="false">
-            <iconify-icon icon="solar:calendar-mark-line-duotone"></iconify-icon>
-            <span class="hide-menu">Schedules</span>
           </a>
         </li>
 
@@ -72,7 +61,7 @@
           <span class="hide-menu">Users</span>
         </li>
         <li class="sidebar-item">
-          <a class="sidebar-link<?= $activePage === 'instructors' ? ' active' : '' ?>" href="<?= htmlspecialchars($navBasePath) ?>users/instructors.php" aria-expanded="false">
+          <a class="sidebar-link<?= $activePage === 'instructors' ? ' active' : '' ?>" href="<?= htmlspecialchars($navBasePath) ?>users/instructors.php" aria-expanded="false" data-bs-toggle="tooltip" data-bs-placement="right" title="Instructors">
             <iconify-icon icon="solar:user-check-line-duotone"></iconify-icon>
             <span class="hide-menu">Instructors</span>
           </a>
@@ -84,19 +73,19 @@
           <span class="hide-menu">Settings</span>
         </li>
         <li class="sidebar-item">
-          <a class="sidebar-link<?= $activePage === 'rooms' ? ' active' : '' ?>" href="<?= htmlspecialchars($navBasePath) ?>settings/rooms.php" aria-expanded="false">
+          <a class="sidebar-link<?= $activePage === 'rooms' ? ' active' : '' ?>" href="<?= htmlspecialchars($navBasePath) ?>settings/rooms.php" aria-expanded="false" data-bs-toggle="tooltip" data-bs-placement="right" title="Rooms">
             <iconify-icon icon="solar:garage-line-duotone"></iconify-icon>
             <span class="hide-menu">Rooms</span>
           </a>
         </li>
         <li class="sidebar-item">
-          <a class="sidebar-link<?= $activePage === 'departments' ? ' active' : '' ?>" href="<?= htmlspecialchars($navBasePath) ?>settings/departments.php" aria-expanded="false">
+          <a class="sidebar-link<?= $activePage === 'departments' ? ' active' : '' ?>" href="<?= htmlspecialchars($navBasePath) ?>settings/departments.php" aria-expanded="false" data-bs-toggle="tooltip" data-bs-placement="right" title="Departments">
             <iconify-icon icon="solar:buildings-2-line-duotone"></iconify-icon>
             <span class="hide-menu">Departments</span>
           </a>
         </li>
         <li class="sidebar-item">
-          <a class="sidebar-link<?= $activePage === 'schoolyear' ? ' active' : '' ?>" href="<?= htmlspecialchars($navBasePath) ?>settings/schoolyear.php" aria-expanded="false">
+          <a class="sidebar-link<?= $activePage === 'schoolyear' ? ' active' : '' ?>" href="<?= htmlspecialchars($navBasePath) ?>settings/schoolyear.php" aria-expanded="false" data-bs-toggle="tooltip" data-bs-placement="right" title="School Year">
             <iconify-icon icon="solar:calendar-line-duotone"></iconify-icon>
             <span class="hide-menu">School Year</span>
           </a>
@@ -108,7 +97,7 @@
 
         <!-- Logout -->
         <li class="sidebar-item">
-          <a class="sidebar-link" href="<?= htmlspecialchars($apiBasePath) ?>logout.php" aria-expanded="false">
+          <a class="sidebar-link" href="<?= htmlspecialchars($apiBasePath) ?>logout.php" aria-expanded="false" data-bs-toggle="tooltip" data-bs-placement="right" title="Logout">
             <iconify-icon icon="solar:logout-2-line-duotone"></iconify-icon>
             <span class="hide-menu">Logout</span>
           </a>
@@ -119,4 +108,38 @@
   </div>
   <!-- End Sidebar scroll -->
 </aside>
+<script>
+(function () {
+  const wrapper = document.getElementById('main-wrapper');
+  const sidebarLinks = document.querySelectorAll('.left-sidebar .sidebar-link[data-bs-toggle="tooltip"]');
+  let tooltipInstances = [];
+
+  function enableTooltips() {
+    tooltipInstances = Array.from(sidebarLinks).map(el => new bootstrap.Tooltip(el, { trigger: 'hover' }));
+  }
+
+  function disableTooltips() {
+    tooltipInstances.forEach(t => t.dispose());
+    tooltipInstances = [];
+  }
+
+  function syncTooltips() {
+    if (wrapper && wrapper.classList.contains('mini-sidebar')) {
+      if (tooltipInstances.length === 0) enableTooltips();
+    } else {
+      disableTooltips();
+    }
+  }
+
+  // Sync on page load
+  document.addEventListener('DOMContentLoaded', syncTooltips);
+
+  // Sync whenever the toggle button is clicked
+  document.addEventListener('click', function (e) {
+    if (e.target.closest('.sidebartoggler')) {
+      setTimeout(syncTooltips, 50);
+    }
+  });
+})();
+</script>
 <!-- Sidebar End -->

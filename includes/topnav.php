@@ -7,6 +7,11 @@
                 <i class="ti ti-menu-2"></i>
               </a>
             </li>
+            <li class="nav-item d-none d-xl-block">
+              <a class="nav-link sidebartoggler" href="javascript:void(0)" aria-label="Toggle Sidebar" title="Toggle Sidebar">
+                <i class="ti ti-layout-sidebar"></i>
+              </a>
+            </li>
             <li class="nav-item dropdown">
               <a class="nav-link " href="javascript:void(0)" id="drop1" data-bs-toggle="dropdown1" aria-expanded="false">
                 <iconify-icon icon="solar:bell-linear" class="fs-6"></iconify-icon>
