@@ -573,6 +573,64 @@ function fillModalClassSections(programId, selectedClassId='') {
   }
 }
 
+function calculateRequiredHours(subject, classMode, semester) {
+  if (!subject) return 0;
+  const isSummer = semester.includes('Summer');
+  let credits = 0;
+  if (classMode === 'LAB') {
+    credits = Number(subject.lab_credits || 0);
+  } else {
+    credits = Number(subject.lec_credits || 0);
+  }
+  let hours = 0;
+  if (isSummer) {
+    hours = classMode === 'LAB' ? credits * 9 : credits * 3;
+  } else {
+    hours = classMode === 'LAB' ? credits * 3 : credits * 1;
+  }
+  return hours;
+}
+
+function calculateScheduledHours(subjectCode, classMode) {
+  let totalMinutes = 0;
+  Object.values(appState.currentSchedulesById).forEach(schedule => {
+    if (String(schedule.subject_code || '') === String(subjectCode) && String(schedule.class_mode || '') === String(classMode)) {
+      const start = timeStringToMinutes(schedule.start_time);
+      const end = timeStringToMinutes(schedule.end_time);
+      if (!Number.isNaN(start) && !Number.isNaN(end) && end > start) {
+        totalMinutes += (end - start);
+      }
+    }
+  });
+  return Math.round((totalMinutes / 60) * 10) / 10;
+}
+
+function updateRequiredHours() {
+  const subjectSelect = getEl('addScheduleSubject');
+  const classModeSelect = getEl('addScheduleClassMode');
+  const hoursDisplay = getEl('requiredHoursDisplay');
+  if (!hoursDisplay) return;
+  const subjectId = subjectSelect ? subjectSelect.value : '';
+  const classMode = classModeSelect ? classModeSelect.value : 'LEC';
+  const classId = getEl('addScheduleClass') ? getEl('addScheduleClass').value : '';
+  if (!subjectId || !classId) {
+    hoursDisplay.innerHTML = '';
+    return;
+  }
+  const subjects = appState.subjectsByClass[classId] || [];
+  const subject = subjects.find(s => String(s.id) === String(subjectId));
+  if (!subject) {
+    hoursDisplay.innerHTML = '';
+    return;
+  }
+  const semesterMatch = appState.activeSchoolYearText.match(/(1st Sem|2nd Sem|Summer)/);
+  const semester = semesterMatch ? semesterMatch[1] : '1st Sem';
+  const requiredHours = calculateRequiredHours(subject, classMode, semester);
+  const scheduledHours = calculateScheduledHours(subject.subject_code, classMode);
+  const remainingHours = Math.max(0, requiredHours - scheduledHours);
+  hoursDisplay.innerHTML = `<small class="text-muted">Required: ${requiredHours}h | Scheduled: ${scheduledHours}h | Remaining: ${remainingHours}h</small>`;
+}
+
 function updateClassModeBySubject(subjectId) {
   const classModeSelect = getEl('addScheduleClassMode');
   const classId = getEl('addScheduleClass') ? getEl('addScheduleClass').value : '';
@@ -661,6 +719,7 @@ function ensureAddScheduleModal() {
               <div class="mb-2">
                 <label class="form-label mb-1">Subject</label>
                 <select id="addScheduleSubject" class="form-select"></select>
+                <div id="requiredHoursDisplay" class="mt-1"></div>
               </div>
               <div class="mb-2">
                 <label class="form-label mb-1">Class Mode</label>
@@ -699,6 +758,7 @@ function ensureAddScheduleModal() {
       fillModalClassSections(this.value);
       populateSelectOptions(getEl('addScheduleSubject'), 'Select Subject', [], 'id', s => `${s.subject_code} - ${s.subject_name}`);
       updateClassModeBySubject('');
+      updateRequiredHours();
     });
   }
 
@@ -711,6 +771,7 @@ function ensureAddScheduleModal() {
       loadSubjectsByClass(this.value).then(subjects => {
         populateSelectOptions(getEl('addScheduleSubject'), 'Select Subject', subjects, 'id', s => `${s.subject_code} - ${s.subject_name}`);
         updateClassModeBySubject(getEl('addScheduleSubject') ? getEl('addScheduleSubject').value : '');
+        updateRequiredHours();
       });
     });
   }
@@ -719,6 +780,14 @@ function ensureAddScheduleModal() {
   if (subjectSelect) {
     subjectSelect.addEventListener('change', function () {
       updateClassModeBySubject(this.value);
+      updateRequiredHours();
+    });
+  }
+
+  const classModeSelect = getEl('addScheduleClassMode');
+  if (classModeSelect) {
+    classModeSelect.addEventListener('change', function () {
+      updateRequiredHours();
     });
   }
 
@@ -752,6 +821,7 @@ function ensureAddScheduleModal() {
       if (modalTitleRef) modalTitleRef.textContent = 'Add Schedule';
       modalEl.dataset.mode = 'add';
       modalEl.dataset.scheduleId = '';
+      updateRequiredHours();
 
       // Hard cleanup to prevent leftover overlay/z-index issues.
       document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
@@ -847,6 +917,7 @@ function openAddScheduleModal(payload) {
     loadSubjectsByClass(selectedClassId).then(subjects => {
       populateSelectOptions(getEl('addScheduleSubject'), 'Select Subject', subjects, 'id', s => `${s.subject_code} - ${s.subject_name}`);
       updateClassModeBySubject(getEl('addScheduleSubject') ? getEl('addScheduleSubject').value : '');
+      updateRequiredHours();
     });
   }
 
@@ -931,6 +1002,7 @@ function openEditScheduleModal(scheduleId) {
       if (classModeSelect) {
         classModeSelect.value = (schedule.class_mode === 'LAB') ? 'LAB' : 'LEC';
       }
+      updateRequiredHours();
     }
   });
 
