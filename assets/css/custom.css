@@ -143,6 +143,14 @@
     top: -22px;
 }
 
+.badge-lec{
+    background-color: var(--wmsu);
+}
+
+.badge-lab{
+    background-color: var(--status-completed);
+}
+
 @media (max-width: 767.98px) {
     .request-action-buttons {
         gap: 0.5rem !important;

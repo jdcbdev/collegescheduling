@@ -1,7 +1,7 @@
 // schedule.js
 // Handles rendering, loading, and adding schedules for class/instructor/room views.
 
-const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const START_HOUR = 7;
 const END_HOUR = 20;
 const INTERVAL_MINUTES = 30;
@@ -1291,7 +1291,7 @@ function ensureSubjectProgressModal() {
     <div class="modal fade" id="subjectProgressModal" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
-          <div class="modal-header">
+          <div class="modal-header pb-0">
             <h5 class="modal-title" id="subjectProgressModalTitle">Subject Progress</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
@@ -1299,7 +1299,7 @@ function ensureSubjectProgressModal() {
             <div id="subjectProgressContent"></div>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-primary btn-cancel-all" data-bs-dismiss="modal">Close</button>
           </div>
         </div>
       </div>
@@ -1358,8 +1358,8 @@ function openSubjectProgressModal(classId) {
           : '<span class="text-danger"><i class="ti ti-circle-x fs-5"></i></span>';
 
         const modeBadge = mode === 'LAB'
-          ? '<span class="badge bg-info text-dark">LAB</span>'
-          : '<span class="badge bg-secondary">LEC</span>';
+          ? '<span class="badge badge-lab">LAB</span>'
+          : '<span class="badge badge-lec">LEC</span>';
 
         // Only show subject code & name on the first mode row; subsequent rows are a continuation
         const codeCell = modeIdx === 0

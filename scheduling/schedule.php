@@ -33,7 +33,7 @@ $navBasePath = '../';
                     <select id="classSectionDropdown" class="form-select form-select w-auto">
                       <option value="">Select Class</option>
                     </select>
-                    <button id="btnSubjectProgress" type="button" class="btn btn-outline-secondary d-none" title="View Subject Progress">
+                    <button id="btnSubjectProgress" type="button" class="btn btn-outline-primary btn-cancel-all d-none" title="View Subject Progress">
                       <i class="ti ti-checklist"></i>
                     </button>
                     <select id="instructorDropdown" class="form-select form-select w-auto d-none">
