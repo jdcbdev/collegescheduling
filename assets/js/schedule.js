@@ -166,8 +166,7 @@ function normalizeDayIndex(day) {
     wednesday: 2, wed: 2,
     thursday: 3, thu: 3, thurs: 3,
     friday: 4, fri: 4,
-    saturday: 5, sat: 5,
-    sunday: 6, sun: 6
+    saturday: 5, sat: 5
   };
   return Object.prototype.hasOwnProperty.call(map, normalized) ? map[normalized] : -1;
 }
@@ -696,7 +695,6 @@ function ensureAddScheduleModal() {
                   <div class="form-check form-check-inline m-0"><input class="form-check-input" type="checkbox" name="addScheduleDays[]" id="addScheduleDayThursday" value="Thursday"><label class="form-check-label" for="addScheduleDayThursday">Thu</label></div>
                   <div class="form-check form-check-inline m-0"><input class="form-check-input" type="checkbox" name="addScheduleDays[]" id="addScheduleDayFriday" value="Friday"><label class="form-check-label" for="addScheduleDayFriday">Fri</label></div>
                   <div class="form-check form-check-inline m-0"><input class="form-check-input" type="checkbox" name="addScheduleDays[]" id="addScheduleDaySaturday" value="Saturday"><label class="form-check-label" for="addScheduleDaySaturday">Sat</label></div>
-                  <div class="form-check form-check-inline m-0"><input class="form-check-input" type="checkbox" name="addScheduleDays[]" id="addScheduleDaySunday" value="Sunday"><label class="form-check-label" for="addScheduleDaySunday">Sun</label></div>
                 </div>
               </div>
               <div class="row g-2 mb-2">
