@@ -339,12 +339,21 @@ function buildScheduleCellHtml(item, palette) {
   const instructorLine = item.instructor_name ? `<div>${escapeHtml(item.instructor_name)}</div>` : '';
   const roomLine = `<div>${escapeHtml(item.room_name || 'TBA')}</div>`;
 
+  // Build full tooltip text with all details
+  const tooltipLines = [title];
+  if (item.class_mode) tooltipLines.push(item.class_mode);
+  if (item.class_section) tooltipLines.push(item.class_section);
+  if (timeRange) tooltipLines.push(timeRange);
+  if (item.instructor_name) tooltipLines.push(item.instructor_name);
+  if (item.room_name) tooltipLines.push(item.room_name);
+  const tooltipText = tooltipLines.join('\n');
+
   return `
-    <div class="p-1 h-100 sched-event-card" data-schedule-id="${scheduleId}" style="background:${eventColor.bg}; border-left:3px solid ${eventColor.border}; font-size:11px; line-height:1.25;">
-      <div style="font-weight:600;">${escapeHtml(title)}</div>
-      ${detailsLine}
-      ${instructorLine}
-      ${roomLine}
+    <div class="p-1 h-100 sched-event-card" data-schedule-id="${scheduleId}" title="${escapeHtml(tooltipText)}" style="background:${eventColor.bg}; border-left:3px solid ${eventColor.border}; font-size:11px; line-height:1.25; overflow:hidden; display:flex; flex-direction:column;">
+      <div style="font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(title)}</div>
+      ${detailsLine.replace(/<div>/g, '<div style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">').replace(/<\/div>/g, '</div>')}
+      ${instructorLine.replace(/<div>/g, '<div style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">').replace(/<\/div>/g, '</div>')}
+      ${roomLine.replace(/<div>/g, '<div style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">').replace(/<\/div>/g, '</div>')}
     </div>
   `;
 }

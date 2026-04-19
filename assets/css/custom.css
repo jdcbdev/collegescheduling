@@ -391,6 +391,17 @@
     margin: 0;
     cursor: pointer;
     pointer-events: auto;
+    overflow: hidden;
+    white-space: normal;
+}
+
+.table-schedule-main .sched-event-card div {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.table-schedule-main .sched-event-card:hover {
+    z-index: 10;
 }
 
 .table-schedule-main .gc-time-cell,
