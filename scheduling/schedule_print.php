@@ -438,11 +438,11 @@ foreach ($schedules as $sched) {
         }
 
         .text-align-center{
-            text-align: center;
+            text-align: center !important;
         }
 
         .text-align-left{
-            text-align: left;
+            text-align: left !important;
         }
         
         .signature-line {
