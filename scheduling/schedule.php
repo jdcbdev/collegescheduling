@@ -14,9 +14,9 @@ $navBasePath = '../';
       <?php require_once __DIR__ . '/../includes/topnav.php'; ?>
       <div class="body-wrapper-inner">
         <div class="container-fluid content-page">
-          <div class="row g-3 flex-nowrap">
+          <div class="row g-3 flex-nowrap align-items-stretch">
             <!-- Panel 1: 60% -->
-            <div style="width:60%; min-width:0; flex:0 0 60%;">
+            <div class="h-100" style="width:60%; min-width:0; flex:0 0 60%;">
               <div class="card h-100">
                 <div class="card-header d-flex justify-content-end align-items-center p-4 py-2 pt-3">
                   <div class="text-end me-3">
@@ -51,9 +51,9 @@ $navBasePath = '../';
               </div>
             </div>
             <!-- Panel 2: 40% -->
-            <div style="width:40%; min-width:0; flex:0 0 40%;">
+            <div class="h-100" style="width:40%; min-width:0; flex:0 0 40%;">
               <div class="d-flex flex-column gap-3 h-100">
-                <div class="card mb-0">
+                <div class="card mb-0 flex-fill">
                   <div class="card-header d-flex justify-content-end align-items-center p-4 py-2 pt-3">
                     <div class="text-end me-3">
                       <h5 id="scheduleLabel2" class="card-title mb-0">Instructor</h5>
@@ -69,7 +69,7 @@ $navBasePath = '../';
                   </div>
                 </div>
 
-                <div class="card">
+                <div class="card flex-fill">
                   <div class="card-header d-flex justify-content-end align-items-center p-4 py-2 pt-3">
                     <div class="text-end me-3">
                       <h5 id="scheduleLabel3" class="card-title mb-0">Room</h5>

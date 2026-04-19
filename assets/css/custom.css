@@ -347,6 +347,11 @@
     border: none;
 }
 
+.table-schedule-main tbody tr:last-child,
+.table-schedule-main tbody tr:last-child td {
+    border: none;
+}
+
 .table-schedule-main tbody td,
 .table-schedule-small tbody td {
     border-color: #dadce0;

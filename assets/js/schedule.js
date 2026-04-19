@@ -144,6 +144,7 @@ function setModalDaySelection(selectedDays) {
 }
 
 function generateScheduleTableHtml() {
+  const MAIN_PANEL_END_HOUR = 19;
   let html = `<table class="table table-bordered table-sm mb-0 table-schedule-main">
     <thead><tr><th class="gc-time-head" style="width:52px"></th>`;
   DAYS.forEach(day => {
@@ -151,7 +152,7 @@ function generateScheduleTableHtml() {
   });
   html += '</tr></thead><tbody>';
 
-  for (let hour = START_HOUR; hour < END_HOUR; hour++) {
+  for (let hour = START_HOUR; hour < MAIN_PANEL_END_HOUR; hour++) {
     for (let min = 0; min < 60; min += INTERVAL_MINUTES) {
       const minutes = hour * 60 + min;
       const timeLabel = min === 0 ? to12H(hour, min) : '';
@@ -162,6 +163,15 @@ function generateScheduleTableHtml() {
       html += '</tr>';
     }
   }
+
+  // Closing label row at 7:00 PM — label only, no grid cells
+  const closingMinutes = MAIN_PANEL_END_HOUR * 60;
+  const closingCellStyle = 'padding:0;pointer-events:none;border-left:none;border-right:none;border-bottom:none;background:transparent;';
+  html += `<tr data-time-minutes="${closingMinutes}"><td class="gc-time-cell" style="border-bottom:none;border-right:none;"><span class="gc-time-label">${to12H(MAIN_PANEL_END_HOUR, 0)}</span></td>`;
+  for (let dayIndex = 0; dayIndex < DAYS.length; dayIndex++) {
+    html += `<td style="${closingCellStyle}"></td>`;
+  }
+  html += '</tr>';
 
   html += '</tbody></table>';
   return html;
@@ -382,7 +392,7 @@ function bindGridCellClickHandlers() {
       openAddScheduleModal({
         dayIndex,
         startMinutes,
-        endMinutes: Math.min(startMinutes + INTERVAL_MINUTES, END_HOUR * 60),
+        endMinutes: Math.min(startMinutes + INTERVAL_MINUTES, 19 * 60),
         contextType: context.type,
         contextId: context.id
       });
@@ -397,8 +407,11 @@ function plotSchedules(containerId, schedules, viewType='class') {
   const table = container.querySelector('table');
   if (!table) return;
 
+  const MAIN_PANEL_END_HOUR = 19;
   const dayStart = START_HOUR * 60;
-  const dayEnd = END_HOUR * 60;
+  const dayEnd = MAIN_PANEL_END_HOUR * 60;
+  // Last real grid row starts at 18:30; clamp rowspan to not overflow into the label-only closing row
+  const lastGridSlot = Math.floor(((MAIN_PANEL_END_HOUR * 60) - dayStart) / INTERVAL_MINUTES);
   const colorMap = buildColorMapForSchedules(schedules, viewType);
   appState.currentSchedulesById = {};
 
@@ -421,7 +434,7 @@ function plotSchedules(containerId, schedules, viewType='class') {
     }
 
     const startSlot = Math.floor((clampedStart - dayStart) / INTERVAL_MINUTES);
-    const endSlot = Math.ceil((clampedEnd - dayStart) / INTERVAL_MINUTES);
+    const endSlot = Math.min(Math.ceil((clampedEnd - dayStart) / INTERVAL_MINUTES), lastGridSlot);
     const rowspan = Math.max(1, endSlot - startSlot);
     const startCellMinutes = dayStart + (startSlot * INTERVAL_MINUTES);
 
