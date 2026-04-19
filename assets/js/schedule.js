@@ -45,7 +45,6 @@ const SEARCH_MENU_BY_SELECT_ID = {
 let scheduleModalInstance = null;
 let subjectProgressModalInstance = null;
 let modalBusy = false;
-let activePanelRefresh = null;
 let currentSchedulesById2 = {};
 let currentSchedulesById3 = {};
 
@@ -1214,7 +1213,6 @@ function setModalAlert(message) {
 }
 
 function openAddScheduleModal(payload) {
-  activePanelRefresh = payload.panelRefresh || refreshScheduleByCurrentSelection;
   ensureAddScheduleModal();
   const dayName = DAYS[payload.dayIndex];
 
@@ -1300,7 +1298,6 @@ function openAddScheduleModal(payload) {
 }
 
 function openEditScheduleModal(scheduleId, panelRefresh) {
-  activePanelRefresh = panelRefresh || refreshScheduleByCurrentSelection;
   const schedule = appState.currentSchedulesById[scheduleId] || currentSchedulesById2[scheduleId] || currentSchedulesById3[scheduleId];
   if (!schedule) {
     return;
@@ -1476,7 +1473,7 @@ function saveScheduleFromModal() {
         }
 
         scheduleModalInstance.hide();
-        (activePanelRefresh || refreshScheduleByCurrentSelection)();
+        refreshAllPanels();
       })
       .catch(() => {
         setModalAlert('Failed to save schedule. Please try again.');
@@ -1510,12 +1507,12 @@ function saveScheduleFromModal() {
         } else {
           setModalAlert(`Saved ${results.length - failed.length}/${results.length}. ${(first && first.message) ? first.message : 'Unable to save some schedules.'}`);
         }
-        (activePanelRefresh || refreshScheduleByCurrentSelection)();
+        refreshAllPanels();
         return;
       }
 
       scheduleModalInstance.hide();
-      (activePanelRefresh || refreshScheduleByCurrentSelection)();
+      refreshAllPanels();
     })
     .finally(() => {
       modalBusy = false;
@@ -1558,7 +1555,7 @@ function deleteScheduleFromModal() {
         return;
       }
       scheduleModalInstance.hide();
-      (activePanelRefresh || refreshScheduleByCurrentSelection)();
+      refreshAllPanels();
     })
     .catch(() => {
       setModalAlert('Failed to delete schedule. Please try again.');
@@ -2113,6 +2110,12 @@ function refreshScheduleByCurrentSelection3() {
     return fetchAndRenderSchedules3(current.type, current.id, 'scheduleTableContainer3');
   }
   return Promise.resolve();
+}
+
+function refreshAllPanels() {
+  refreshScheduleByCurrentSelection();
+  refreshScheduleByCurrentSelection2();
+  refreshScheduleByCurrentSelection3();
 }
 
 function setupPanel3Dropdowns() {
