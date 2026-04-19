@@ -323,11 +323,12 @@ function buildColorMapForSchedules(schedules, viewType) {
   return colorMap;
 }
 
-function buildScheduleCellHtml(item, palette) {
+function buildScheduleCellHtml(item, palette, viewType='class') {
   const title = item.subject_name || 'Scheduled';
   const details = [];
   if (item.class_mode) details.push(item.class_mode);
-  if (item.class_section) details.push(item.class_section);
+  // Only show class_section if not viewing by class
+  if (viewType !== 'class' && item.class_section) details.push(item.class_section);
 
   const timeRange = (item.start_time && item.end_time) ? `${formatTimeTo12H(item.start_time)} - ${formatTimeTo12H(item.end_time)}` : '';
   if (timeRange) details.push(timeRange);
@@ -336,8 +337,10 @@ function buildScheduleCellHtml(item, palette) {
   const eventColor = palette || EVENT_PALETTE[0];
 
   const detailsLine = details.length ? `<div>${escapeHtml(details.join(' | '))}</div>` : '';
-  const instructorLine = item.instructor_name ? `<div>${escapeHtml(item.instructor_name)}</div>` : '';
-  const roomLine = `<div>${escapeHtml(item.room_name || 'TBA')}</div>`;
+  // Only show instructor if not viewing by instructor
+  const instructorLine = (viewType !== 'instructor' && item.instructor_name) ? `<div>${escapeHtml(item.instructor_name)}</div>` : '';
+  // Only show room if not viewing by room
+  const roomLine = (viewType !== 'room') ? `<div>${escapeHtml(item.room_name || 'TBA')}</div>` : '';
 
   // Build full tooltip text with all details
   const tooltipLines = [title];
@@ -457,7 +460,7 @@ function plotSchedules(containerId, schedules, viewType='class') {
     }
     startCell.rowSpan = rowspan;
     const key = getColorKeyByView(item, viewType);
-    startCell.innerHTML = buildScheduleCellHtml(item, colorMap[key]);
+    startCell.innerHTML = buildScheduleCellHtml(item, colorMap[key], viewType);
 
     for (let slot = startSlot + 1; slot < endSlot; slot++) {
       const coveredMinutes = dayStart + (slot * INTERVAL_MINUTES);
@@ -1907,7 +1910,7 @@ function plotSchedules2(containerId, schedules, viewType = 'class') {
     if (item && item.id) startCell.dataset.scheduleId = String(item.id);
     startCell.rowSpan = rowspan;
     const key = getColorKeyByView(item, viewType);
-    startCell.innerHTML = buildScheduleCellHtml(item, colorMap[key]);
+    startCell.innerHTML = buildScheduleCellHtml(item, colorMap[key], 'instructor');
 
     for (let slot = startSlot + 1; slot < endSlot; slot++) {
       const coveredMinutes = dayStart + (slot * INTERVAL_MINUTES);
@@ -2087,7 +2090,7 @@ function plotSchedules3(containerId, schedules, viewType = 'room') {
     if (item && item.id) startCell.dataset.scheduleId = String(item.id);
     startCell.rowSpan = rowspan;
     const key = getColorKeyByView(item, viewType);
-    startCell.innerHTML = buildScheduleCellHtml(item, colorMap[key]);
+    startCell.innerHTML = buildScheduleCellHtml(item, colorMap[key], 'room');
 
     for (let slot = startSlot + 1; slot < endSlot; slot++) {
       const coveredMinutes = dayStart + (slot * INTERVAL_MINUTES);
