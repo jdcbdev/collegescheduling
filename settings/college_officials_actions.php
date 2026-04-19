@@ -41,6 +41,7 @@ try {
             $name = isset($_POST['name']) ? trim($_POST['name']) : '';
             $title = isset($_POST['title']) ? trim($_POST['title']) : '';
             $isDean = isset($_POST['is_dean']) ? (int)$_POST['is_dean'] : 0;
+            $isSecretary = isset($_POST['is_secretary']) ? (int)$_POST['is_secretary'] : 0;
             $departmentIdRaw = $_POST['department_id'] ?? '';
             $departmentId = ($departmentIdRaw === '' || $departmentIdRaw === null) ? null : (int)$departmentIdRaw;
 
@@ -52,19 +53,24 @@ try {
                 jsonResponse(false, null, 'Invalid dean flag value.');
             }
 
+            if ($isSecretary !== 0 && $isSecretary !== 1) {
+                jsonResponse(false, null, 'Invalid secretary flag value.');
+            }
+
             if ($isDean === 1) {
                 $departmentId = null;
                 if ($official->hasDean()) {
                     jsonResponse(false, null, 'A dean record already exists.');
                 }
-            } elseif ($departmentId === null || $departmentId <= 0) {
-                jsonResponse(false, null, 'Please select a department for non-dean officials.');
+            } elseif ($isSecretary !== 1 && ($departmentId === null || $departmentId <= 0)) {
+                jsonResponse(false, null, 'Please select a department unless official is marked as dean or secretary.');
             }
 
             $official->name = $name;
             $official->title = $title;
             $official->department_id = $departmentId;
             $official->is_dean = $isDean;
+            $official->is_secretary = $isSecretary;
 
             if ($official->addOfficial()) {
                 jsonResponse(true, null, 'College official added successfully.');
@@ -78,6 +84,7 @@ try {
             $name = isset($_POST['name']) ? trim($_POST['name']) : '';
             $title = isset($_POST['title']) ? trim($_POST['title']) : '';
             $isDean = isset($_POST['is_dean']) ? (int)$_POST['is_dean'] : 0;
+            $isSecretary = isset($_POST['is_secretary']) ? (int)$_POST['is_secretary'] : 0;
             $departmentIdRaw = $_POST['department_id'] ?? '';
             $departmentId = ($departmentIdRaw === '' || $departmentIdRaw === null) ? null : (int)$departmentIdRaw;
 
@@ -89,13 +96,17 @@ try {
                 jsonResponse(false, null, 'Invalid dean flag value.');
             }
 
+            if ($isSecretary !== 0 && $isSecretary !== 1) {
+                jsonResponse(false, null, 'Invalid secretary flag value.');
+            }
+
             if ($isDean === 1) {
                 $departmentId = null;
                 if ($official->hasDean($id)) {
                     jsonResponse(false, null, 'A dean record already exists.');
                 }
-            } elseif ($departmentId === null || $departmentId <= 0) {
-                jsonResponse(false, null, 'Please select a department for non-dean officials.');
+            } elseif ($isSecretary !== 1 && ($departmentId === null || $departmentId <= 0)) {
+                jsonResponse(false, null, 'Please select a department unless official is marked as dean or secretary.');
             }
 
             $official->id = $id;
@@ -103,6 +114,7 @@ try {
             $official->title = $title;
             $official->department_id = $departmentId;
             $official->is_dean = $isDean;
+            $official->is_secretary = $isSecretary;
 
             if ($official->updateOfficial()) {
                 jsonResponse(true, null, 'College official updated successfully.');

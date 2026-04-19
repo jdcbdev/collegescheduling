@@ -81,12 +81,16 @@ $navBasePath = '../';
                         <select class="form-select" id="officialDepartment" name="department_id">
                           <option value="">Select Department</option>
                         </select>
-                        <small class="text-muted">Department can be empty only if this official is marked as dean.</small>
+                        <small class="text-muted">Department can be empty only if this official is marked as dean or secretary.</small>
                       </div>
                       <div class="col-md-12">
                         <div class="form-check mt-2">
                           <input class="form-check-input" type="checkbox" id="officialIsDean" name="is_dean" value="1">
                           <label class="form-check-label" for="officialIsDean">Mark as Dean</label>
+                        </div>
+                        <div class="form-check mt-2">
+                          <input class="form-check-input" type="checkbox" id="officialIsSecretary" name="is_secretary" value="1">
+                          <label class="form-check-label" for="officialIsSecretary">Mark as Secretary</label>
                         </div>
                       </div>
                     </div>
@@ -210,6 +214,7 @@ $navBasePath = '../';
         $('#officialName').val('');
         $('#officialTitle').val('');
         $('#officialIsDean').prop('checked', false);
+        $('#officialIsSecretary').prop('checked', false);
         fillDepartments('');
         $('#officialDepartment').prop('disabled', false);
         $('#officialMessage').html('');
@@ -217,10 +222,11 @@ $navBasePath = '../';
 
       function syncDeanToggle() {
         var isDean = $('#officialIsDean').is(':checked');
-        if (isDean) {
+        var isSecretary = $('#officialIsSecretary').is(':checked');
+        if (isDean || isSecretary) {
           $('#officialDepartment').val('');
         }
-        $('#officialDepartment').prop('disabled', isDean);
+        $('#officialDepartment').prop('disabled', isDean || isSecretary);
       }
 
       $(document).ready(function() {
@@ -236,6 +242,7 @@ $navBasePath = '../';
         });
 
         $('#officialIsDean').on('change', syncDeanToggle);
+        $('#officialIsSecretary').on('change', syncDeanToggle);
 
         $(document).on('click', '.btn-edit-official', function() {
           var id = $(this).data('id');
@@ -247,6 +254,7 @@ $navBasePath = '../';
                 $('#officialName').val(item.name || '');
                 $('#officialTitle').val(item.title || '');
                 $('#officialIsDean').prop('checked', Number(item.is_dean) === 1);
+                $('#officialIsSecretary').prop('checked', Number(item.is_secretary) === 1);
                 fillDepartments(item.department_id || '');
                 syncDeanToggle();
                 $('#officialModalLabel').text('Edit College Official');
@@ -287,6 +295,7 @@ $navBasePath = '../';
           var name = $('#officialName').val().trim();
           var title = $('#officialTitle').val().trim();
           var isDean = $('#officialIsDean').is(':checked') ? 1 : 0;
+          var isSecretary = $('#officialIsSecretary').is(':checked') ? 1 : 0;
           var departmentId = $('#officialDepartment').val();
 
           if (!name || !title) {
@@ -294,8 +303,8 @@ $navBasePath = '../';
             return;
           }
 
-          if (!isDean && !departmentId) {
-            showMessage('Please select a department for non-dean officials.', 'error');
+          if (!isDean && !isSecretary && !departmentId) {
+            showMessage('Please select a department unless official is marked as dean or secretary.', 'error');
             return;
           }
 
@@ -305,6 +314,7 @@ $navBasePath = '../';
             name: name,
             title: title,
             is_dean: isDean,
+            is_secretary: isSecretary,
             department_id: isDean ? '' : departmentId
           };
 

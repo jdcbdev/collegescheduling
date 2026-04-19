@@ -9,12 +9,13 @@ class CollegeOfficial extends Database {
     public $title;
     public $department_id;
     public $is_dean;
+    public $is_secretary;
 
     public function addOfficial() {
         $conn = $this->connect();
 
-        $sql = "INSERT INTO college_officials (name, title, department_id, is_dean)
-                VALUES (:name, :title, :department_id, :is_dean)";
+        $sql = "INSERT INTO college_officials (name, title, department_id, is_dean, is_secretary)
+            VALUES (:name, :title, :department_id, :is_dean, :is_secretary)";
 
         $query = $conn->prepare($sql);
         $query->bindParam(':name', $this->name, PDO::PARAM_STR);
@@ -27,6 +28,7 @@ class CollegeOfficial extends Database {
         }
 
         $query->bindValue(':is_dean', (int)$this->is_dean, PDO::PARAM_INT);
+        $query->bindValue(':is_secretary', (int)$this->is_secretary, PDO::PARAM_INT);
 
         if ($query->execute()) {
             return $conn->lastInsertId();
@@ -43,6 +45,7 @@ class CollegeOfficial extends Database {
                        co.title,
                        co.department_id,
                        co.is_dean,
+                       co.is_secretary,
                        co.created_at,
                        d.department_name
                 FROM college_officials co
@@ -65,6 +68,7 @@ class CollegeOfficial extends Database {
                        co.title,
                        co.department_id,
                        co.is_dean,
+                       co.is_secretary,
                        co.created_at,
                        d.department_name
                 FROM college_officials co
@@ -105,7 +109,8 @@ class CollegeOfficial extends Database {
                 SET name = :name,
                     title = :title,
                     department_id = :department_id,
-                    is_dean = :is_dean
+                    is_dean = :is_dean,
+                    is_secretary = :is_secretary
                 WHERE id = :id";
 
         $query = $conn->prepare($sql);
@@ -120,6 +125,7 @@ class CollegeOfficial extends Database {
         }
 
         $query->bindValue(':is_dean', (int)$this->is_dean, PDO::PARAM_INT);
+        $query->bindValue(':is_secretary', (int)$this->is_secretary, PDO::PARAM_INT);
 
         return $query->execute();
     }

@@ -182,18 +182,30 @@ try {
     $hasOfficialTable = $tableCheck && $tableCheck->fetch(PDO::FETCH_ASSOC);
 
     if ($hasOfficialTable) {
+        $secRow = null;
+
         if ($isInstructorView && $selectedDepartmentId !== null && $selectedDepartmentId > 0) {
-            $secStmt = $conn->prepare("SELECT name, title FROM college_officials WHERE is_dean = 0 AND department_id = :department_id ORDER BY id ASC LIMIT 1");
+            $secStmt = $conn->prepare("SELECT name, title FROM college_officials WHERE is_secretary = 1 AND department_id = :department_id ORDER BY id ASC LIMIT 1");
             $secStmt->bindValue(':department_id', $selectedDepartmentId, PDO::PARAM_INT);
             $secStmt->execute();
             $secRow = $secStmt->fetch(PDO::FETCH_ASSOC);
+        }
 
-            if (!empty($secRow['name'])) {
-                $preparedByName = strtoupper((string)$secRow['name']);
-            }
-            if (!empty($secRow['title'])) {
-                $preparedByRole = strtoupper((string)$secRow['title']);
-            }
+        if (!$secRow) {
+            $secStmt = $conn->query("SELECT name, title FROM college_officials WHERE is_secretary = 1 ORDER BY id ASC LIMIT 1");
+            $secRow = $secStmt ? $secStmt->fetch(PDO::FETCH_ASSOC) : null;
+        }
+
+        if (!$secRow) {
+            $secStmt = $conn->query("SELECT name, title FROM college_officials WHERE is_dean = 0 ORDER BY id ASC LIMIT 1");
+            $secRow = $secStmt ? $secStmt->fetch(PDO::FETCH_ASSOC) : null;
+        }
+
+        if (!empty($secRow['name'])) {
+            $preparedByName = strtoupper((string)$secRow['name']);
+        }
+        if (!empty($secRow['title'])) {
+            $preparedByRole = strtoupper((string)$secRow['title']);
         }
 
         $deanStmt = $conn->query("SELECT name, title FROM college_officials WHERE is_dean = 1 ORDER BY id ASC LIMIT 1");
