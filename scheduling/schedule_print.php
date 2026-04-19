@@ -33,6 +33,7 @@ $semesterMap = [
     '3' => 'Summer'
 ];
 $semesterLabel = $semesterMap[$semesterValue] ?? ($semesterValue !== '' ? ('Sem ' . $semesterValue) : '');
+$isInstructorView = ($type === 'instructor');
 
 function timeToMinutes(string $timeValue): int {
     $parts = explode(':', substr($timeValue, 0, 5));
@@ -257,7 +258,7 @@ foreach ($schedules as $sched) {
         
         @media print {
             @page {
-                size: 13in 8.5in landscape;
+                size: 13in 8.5in;
                 margin: 0.25in;
             }
 
@@ -322,6 +323,46 @@ foreach ($schedules as $sched) {
             border-bottom: 1px dotted #000;
             min-width: 150px;
             padding: 0 5px;
+        }
+
+        .load-field.align-right {
+            text-align: right;
+        }
+
+        .load-field.align-right .info-label,
+        .load-field.align-right .info-value {
+            text-align: right;
+        }
+
+        .control-panel {
+            display: flex;
+            justify-content: center;
+            align-items: end;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+
+        .control-field {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 4px;
+            min-width: 180px;
+        }
+
+        .control-label {
+            font-size: 12px;
+            font-weight: 700;
+            color: #111;
+        }
+
+        .control-input {
+            width: 100%;
+            border: 1px solid #bbb;
+            border-radius: 4px;
+            padding: 6px 8px;
+            font-size: 13px;
         }
         
         table {
@@ -392,18 +433,35 @@ foreach ($schedules as $sched) {
         .footer {
             display: flex;
             justify-content: space-between;
-            margin-top: 30px;
+            margin-top: 20px;
             font-size: 11px;
+        }
+
+        .text-align-center{
+            text-align: center;
+        }
+
+        .text-align-left{
+            text-align: left;
         }
         
         .signature-line {
-            margin-top: 30px;
-            text-align: center;
+            text-align: left;
         }
         
         .signature-name {
-            margin-top: 5px;
+            margin-top: 20px;
             font-weight: bold;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+        }
+
+        .signature-role {
+            margin-top: 4px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
         }
         
         @media print {
@@ -449,6 +507,16 @@ foreach ($schedules as $sched) {
 </head>
 <body>
     <div class="no-print">
+        <div class="control-panel">
+            <div class="control-field">
+                <label class="control-label" for="regularLoadInput">Regular Load</label>
+                <input id="regularLoadInput" class="control-input" type="text" placeholder="Enter regular load">
+            </div>
+            <div class="control-field">
+                <label class="control-label" for="overloadInput">Overload</label>
+                <input id="overloadInput" class="control-input text-align-cener" type="text" placeholder="Enter overload">
+            </div>
+        </div>
         <button class="btn" onclick="window.print()">🖨️ Print</button>
         <button class="btn" onclick="downloadPDF()">⬇️ Download PDF</button>
         <button class="btn" onclick="window.close()">❌ Close</button>
@@ -458,8 +526,8 @@ foreach ($schedules as $sched) {
         <div class="header">
             <h3>WESTERN MINDANAO STATE UNIVERSITY</h3>
             <h3>COLLEGE OF COMPUTING STUDIES</h3>
+            <p>S.Y. <?php echo htmlspecialchars($schoolYear['start_year'] . '-' . $schoolYear['end_year'] . ', ' . $semesterLabel); ?></p>
             <div class="title">LOADING FORM</div>
-            <p><?php echo htmlspecialchars($schoolYear['start_year'] . '-' . $schoolYear['end_year'] . ', ' . $semesterLabel); ?></p>
         </div>
         
         <div class="info-row">
@@ -467,20 +535,20 @@ foreach ($schedules as $sched) {
                 <span class="info-label">Department:</span>
                 <span class="info-value"><?php echo htmlspecialchars($departmentInfo); ?></span>
             </div>
-            <div class="info-field">
+            <div class="info-field load-field<?php echo $isInstructorView ? ' align-right' : ''; ?>">
                 <span class="info-label">Regular Load:</span>
-                <span class="info-value"></span>
+                <span id="regularLoadValue" class="info-value"></span>
             </div>
         </div>
         
         <div class="info-row">
             <div class="info-field">
                 <span class="info-label"><?php echo ucfirst($type); ?>:</span>
-                <span class="info-value"><?php echo htmlspecialchars($titleInfo); ?></span>
+                <span class="info-value text-align-center"><?php echo htmlspecialchars($titleInfo); ?></span>
             </div>
-            <div class="info-field">
+            <div class="info-field load-field<?php echo $isInstructorView ? ' align-right' : ''; ?>">
                 <span class="info-label">Overload:</span>
-                <span class="info-value"></span>
+                <span id="overloadValue" class="info-value text-align-center"></span>
             </div>
         </div>
         
@@ -551,18 +619,45 @@ foreach ($schedules as $sched) {
         <div class="footer">
             <div class="signature-line">
                 <p>PREPARED BY:</p>
-                <div class="signature-name">_______________________</div>
+                <div class="signature-name text-align-left">____________________________________</div>
+                <div class="signature-role text-align-center">COLLEGE SECRETARY</div>
             </div>
             <div class="signature-line">
                 <p>APPROVED BY:</p>
-                <div class="signature-name">_______________________</div>
+                <div class="signature-name text-align-left">____________________________________</div>
+                <div class="signature-role text-align-center">DEAN, COLLEGE OF COMPUTING STUDIES</div>
             </div>
         </div>
     </div>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script>
+        function applyLoadValues() {
+            const regularInput = document.getElementById('regularLoadInput');
+            const overloadInput = document.getElementById('overloadInput');
+            const regularOutput = document.getElementById('regularLoadValue');
+            const overloadOutput = document.getElementById('overloadValue');
+
+            if (regularOutput) {
+                regularOutput.textContent = regularInput ? regularInput.value.trim() : '';
+            }
+            if (overloadOutput) {
+                overloadOutput.textContent = overloadInput ? overloadInput.value.trim() : '';
+            }
+        }
+
+        window.addEventListener('beforeprint', applyLoadValues);
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const regularInput = document.getElementById('regularLoadInput');
+            const overloadInput = document.getElementById('overloadInput');
+            if (regularInput) regularInput.addEventListener('input', applyLoadValues);
+            if (overloadInput) overloadInput.addEventListener('input', applyLoadValues);
+            applyLoadValues();
+        });
+
         function downloadPDF() {
+            applyLoadValues();
             const element = document.querySelector('.print-container');
             const docName = 'schedule-<?php echo htmlspecialchars($titleInfo); ?>.pdf'.replace(/[^\w\s-]/g, '_');
             
