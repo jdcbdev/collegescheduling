@@ -18,7 +18,7 @@ $navBasePath = '../';
             <!-- Panel 1: 60% -->
             <div style="width:60%; min-width:0; flex:0 0 60%;">
               <div class="card h-100">
-                <div class="card-header d-flex justify-content-end align-items-center">
+                <div class="card-header d-flex justify-content-end align-items-center p-4 py-2 pt-3">
                   <div class="text-end me-3">
                     <h5 class="card-title mb-0 schedule-label">Class Schedule <span class="text-muted">| SY: --</span></h5>
                   </div>
@@ -45,7 +45,7 @@ $navBasePath = '../';
                     </select>
                   </div>
                 </div>
-                <div class="card-body p-4 pt-2">
+                <div class="card-body p-4 pt-2 pb-2">
                   <div id="scheduleTableContainer" class="table-responsive"></div>
                 </div>
               </div>
@@ -54,7 +54,7 @@ $navBasePath = '../';
             <div style="width:40%; min-width:0; flex:0 0 40%;">
               <div class="d-flex flex-column gap-3 h-100">
                 <div class="card mb-0">
-                  <div class="card-header d-flex justify-content-end align-items-center">
+                  <div class="card-header d-flex justify-content-end align-items-center p-4 py-2 pt-3">
                     <div class="text-end me-3">
                       <h5 id="scheduleLabel2" class="card-title mb-0">Instructor</h5>
                     </div>
@@ -64,13 +64,13 @@ $navBasePath = '../';
                       </select>
                     </div>
                   </div>
-                  <div class="card-body p-4 pt-2">
+                  <div class="card-body p-4 pt-2 pb-2">
                     <div id="scheduleTableContainer2" class="table-responsive"></div>
                   </div>
                 </div>
 
                 <div class="card">
-                  <div class="card-header d-flex justify-content-end align-items-center">
+                  <div class="card-header d-flex justify-content-end align-items-center p-4 py-2 pt-3">
                     <div class="text-end me-3">
                       <h5 id="scheduleLabel3" class="card-title mb-0">Room</h5>
                     </div>
@@ -80,7 +80,7 @@ $navBasePath = '../';
                       </select>
                     </div>
                   </div>
-                  <div class="card-body p-4 pt-2">
+                  <div class="card-body p-4 pt-2 pb-2">
                     <div id="scheduleTableContainer3" class="table-responsive"></div>
                   </div>
                 </div>
