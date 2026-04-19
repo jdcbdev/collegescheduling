@@ -25,7 +25,20 @@ const appState = {
   rooms: [],
   activeSchoolYearText: 'SY: --',
   subjectsByClass: {},
-  currentSchedulesById: {}
+  currentSchedulesById: {},
+  modalSelectOptionsCache: {}
+};
+
+const SEARCH_INPUT_BY_SELECT_ID = {
+  addScheduleSubject: 'addScheduleSubjectSearch',
+  addScheduleInstructor: 'addScheduleInstructorSearch',
+  addScheduleRoom: 'addScheduleRoomSearch'
+};
+
+const SEARCH_MENU_BY_SELECT_ID = {
+  addScheduleSubject: 'addScheduleSubjectMenu',
+  addScheduleInstructor: 'addScheduleInstructorMenu',
+  addScheduleRoom: 'addScheduleRoomMenu'
 };
 
 let scheduleModalInstance = null;
@@ -430,6 +443,283 @@ function populateSelectOptions(selectEl, placeholder, items, valueKey, labelBuil
   selectEl.innerHTML = placeholderHtml + items
     .map(item => `<option value="${item[valueKey]}">${escapeHtml(labelBuilder(item))}</option>`)
     .join('');
+
+  if (Object.prototype.hasOwnProperty.call(SEARCH_INPUT_BY_SELECT_ID, selectEl.id)) {
+    cacheModalSelectOptions(selectEl.id);
+    syncSearchInputWithSelect(selectEl.id);
+  }
+}
+
+function cacheModalSelectOptions(selectId) {
+  const selectEl = getEl(selectId);
+  if (!selectEl) return;
+
+  appState.modalSelectOptionsCache[selectId] = Array.from(selectEl.options).map(opt => ({
+    value: String(opt.value ?? ''),
+    label: String(opt.textContent ?? ''),
+    isPlaceholder: String(opt.value ?? '') === ''
+  }));
+}
+
+function findOptionByValue(options, value) {
+  const stringValue = String(value ?? '');
+  return options.find(opt => String(opt.value) === stringValue) || null;
+}
+
+function findOptionByLabel(options, labelText) {
+  const normalizedText = String(labelText || '').trim().toLowerCase();
+  if (!normalizedText) return null;
+  return options.find(opt => !opt.isPlaceholder && String(opt.label || '').trim().toLowerCase() === normalizedText) || null;
+}
+
+function getFilteredModalOptions(selectId, queryText='') {
+  if (!Array.isArray(appState.modalSelectOptionsCache[selectId])) {
+    cacheModalSelectOptions(selectId);
+  }
+
+  const allOptions = appState.modalSelectOptionsCache[selectId] || [];
+  const q = String(queryText || '').trim().toLowerCase();
+
+  const matches = allOptions.filter(opt => {
+    if (opt.isPlaceholder) return false;
+    if (!q) return true;
+    return String(opt.label || '').toLowerCase().includes(q);
+  });
+
+  return matches.slice(0, 80);
+}
+
+function closeSearchMenu(selectId) {
+  const menuId = SEARCH_MENU_BY_SELECT_ID[selectId];
+  const menuEl = getEl(menuId);
+  if (!menuEl) return;
+  menuEl.classList.add('d-none');
+  menuEl.innerHTML = '';
+}
+
+function closeAllSearchMenus() {
+  Object.keys(SEARCH_MENU_BY_SELECT_ID).forEach(selectId => {
+    closeSearchMenu(selectId);
+  });
+}
+
+function highlightActiveSearchMenuItem(selectId) {
+  const menuId = SEARCH_MENU_BY_SELECT_ID[selectId];
+  const menuEl = getEl(menuId);
+  if (!menuEl) return;
+
+  const activeIndex = Number(menuEl.dataset.activeIndex || -1);
+  const items = menuEl.querySelectorAll('[data-option-index]');
+  items.forEach((item, idx) => {
+    item.classList.toggle('active', idx === activeIndex);
+  });
+}
+
+function selectSearchMenuOption(selectId, index) {
+  const menuId = SEARCH_MENU_BY_SELECT_ID[selectId];
+  const menuEl = getEl(menuId);
+  if (!menuEl) return false;
+
+  let options = [];
+  try {
+    options = JSON.parse(menuEl.dataset.options || '[]');
+  } catch (e) {
+    options = [];
+  }
+
+  const opt = options[index];
+  if (!opt || !opt.value) {
+    return false;
+  }
+
+  const selectEl = getEl(selectId);
+  const inputEl = getEl(SEARCH_INPUT_BY_SELECT_ID[selectId]);
+  if (!selectEl || !inputEl) {
+    return false;
+  }
+
+  selectEl.value = String(opt.value);
+  selectEl.dispatchEvent(new Event('change'));
+  inputEl.value = String(opt.label || '');
+  closeSearchMenu(selectId);
+  return true;
+}
+
+function renderSearchMenu(selectId, queryText='') {
+  const menuId = SEARCH_MENU_BY_SELECT_ID[selectId];
+  const menuEl = getEl(menuId);
+  if (!menuEl) return;
+
+  const matches = getFilteredModalOptions(selectId, queryText);
+  menuEl.dataset.options = JSON.stringify(matches);
+
+  if (matches.length === 0) {
+    menuEl.innerHTML = '<div class="list-group-item text-muted small">No matches found</div>';
+    menuEl.dataset.activeIndex = '-1';
+    menuEl.classList.remove('d-none');
+    return;
+  }
+
+  menuEl.innerHTML = matches
+    .map((opt, idx) => `<button type="button" class="list-group-item list-group-item-action py-2" data-option-index="${idx}">${escapeHtml(opt.label)}</button>`)
+    .join('');
+
+  menuEl.dataset.activeIndex = '-1';
+  menuEl.classList.remove('d-none');
+
+  const optionButtons = menuEl.querySelectorAll('[data-option-index]');
+  optionButtons.forEach(btn => {
+    btn.addEventListener('mousedown', function (event) {
+      event.preventDefault();
+    });
+    btn.addEventListener('click', function () {
+      const idx = Number(this.dataset.optionIndex);
+      selectSearchMenuOption(selectId, idx);
+    });
+  });
+}
+
+function setSelectValueBySearchText(selectId, text, allowBestMatch=false) {
+  const selectEl = getEl(selectId);
+  if (!selectEl) return;
+
+  if (!Array.isArray(appState.modalSelectOptionsCache[selectId])) {
+    cacheModalSelectOptions(selectId);
+  }
+
+  const cachedOptions = appState.modalSelectOptionsCache[selectId] || [];
+  const rawText = String(text || '').trim();
+  if (!rawText) {
+    const changed = selectEl.value !== '';
+    selectEl.value = '';
+    if (changed) {
+      selectEl.dispatchEvent(new Event('change'));
+    }
+    return;
+  }
+
+  let matched = findOptionByLabel(cachedOptions, rawText);
+  if (!matched && allowBestMatch) {
+    const q = rawText.toLowerCase();
+    matched = cachedOptions.find(opt => !opt.isPlaceholder && String(opt.label || '').toLowerCase().includes(q)) || null;
+  }
+
+  if (!matched) {
+    return;
+  }
+
+  const nextValue = String(matched.value || '');
+  if (selectEl.value !== nextValue) {
+    selectEl.value = nextValue;
+    selectEl.dispatchEvent(new Event('change'));
+  }
+}
+
+function syncSearchInputWithSelect(selectId) {
+  const inputId = SEARCH_INPUT_BY_SELECT_ID[selectId];
+  if (!inputId) return;
+
+  const selectEl = getEl(selectId);
+  const inputEl = getEl(inputId);
+  if (!selectEl || !inputEl) return;
+
+  const selectedOption = selectEl.options[selectEl.selectedIndex];
+  if (!selectedOption || !selectEl.value) {
+    inputEl.value = '';
+    closeSearchMenu(selectId);
+    return;
+  }
+
+  inputEl.value = String(selectedOption.textContent || '');
+  closeSearchMenu(selectId);
+}
+
+function wireModalSearchableSelect(selectId, inputId) {
+  const selectEl = getEl(selectId);
+  const inputEl = getEl(inputId);
+  if (!selectEl || !inputEl) return;
+  if (inputEl.dataset.searchWired === '1') return;
+
+  inputEl.dataset.searchWired = '1';
+
+  inputEl.addEventListener('input', function () {
+    renderSearchMenu(selectId, this.value);
+    setSelectValueBySearchText(selectId, this.value, false);
+  });
+
+  inputEl.addEventListener('focus', function () {
+    renderSearchMenu(selectId, this.value);
+  });
+
+  inputEl.addEventListener('keydown', function (event) {
+    const menuId = SEARCH_MENU_BY_SELECT_ID[selectId];
+    const menuEl = getEl(menuId);
+    if (!menuEl || menuEl.classList.contains('d-none')) return;
+
+    let activeIndex = Number(menuEl.dataset.activeIndex || -1);
+    let options = [];
+    try {
+      options = JSON.parse(menuEl.dataset.options || '[]');
+    } catch (e) {
+      options = [];
+    }
+
+    if (!options.length) return;
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      activeIndex = Math.min(activeIndex + 1, options.length - 1);
+      menuEl.dataset.activeIndex = String(activeIndex);
+      highlightActiveSearchMenuItem(selectId);
+      return;
+    }
+
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      activeIndex = Math.max(activeIndex - 1, 0);
+      menuEl.dataset.activeIndex = String(activeIndex);
+      highlightActiveSearchMenuItem(selectId);
+      return;
+    }
+
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      if (activeIndex < 0) activeIndex = 0;
+      selectSearchMenuOption(selectId, activeIndex);
+      return;
+    }
+
+    if (event.key === 'Escape') {
+      closeSearchMenu(selectId);
+    }
+  });
+
+  inputEl.addEventListener('change', function () {
+    setSelectValueBySearchText(selectId, this.value, true);
+    syncSearchInputWithSelect(selectId);
+  });
+
+  inputEl.addEventListener('blur', function () {
+    window.setTimeout(() => {
+      setSelectValueBySearchText(selectId, this.value, true);
+      syncSearchInputWithSelect(selectId);
+      closeSearchMenu(selectId);
+    }, 120);
+  });
+
+  selectEl.addEventListener('change', function () {
+    syncSearchInputWithSelect(selectId);
+  });
+
+  cacheModalSelectOptions(selectId);
+  closeSearchMenu(selectId);
+  syncSearchInputWithSelect(selectId);
+}
+
+function syncModalSearchableInputs() {
+  Object.keys(SEARCH_INPUT_BY_SELECT_ID).forEach(selectId => {
+    syncSearchInputWithSelect(selectId);
+  });
 }
 
 function loadPrograms() {
@@ -717,7 +1007,11 @@ function ensureAddScheduleModal() {
               </div>
               <div class="mb-2">
                 <label class="form-label mb-1">Subject</label>
-                <select id="addScheduleSubject" class="form-select"></select>
+                <div class="position-relative">
+                  <input id="addScheduleSubjectSearch" type="text" autocomplete="off" class="form-control mb-1" placeholder="Type to search subject...">
+                  <div id="addScheduleSubjectMenu" class="list-group position-absolute w-100 shadow-sm d-none" style="z-index:1080; max-height:220px; overflow-y:auto;"></div>
+                </div>
+                <select id="addScheduleSubject" class="form-select d-none"></select>
                 <div id="requiredHoursDisplay" class="mt-1"></div>
               </div>
               <div class="mb-2">
@@ -729,11 +1023,19 @@ function ensureAddScheduleModal() {
               </div>
               <div class="mb-2">
                 <label class="form-label mb-1">Instructor</label>
-                <select id="addScheduleInstructor" class="form-select"></select>
+                <div class="position-relative">
+                  <input id="addScheduleInstructorSearch" type="text" autocomplete="off" class="form-control mb-1" placeholder="Type to search instructor...">
+                  <div id="addScheduleInstructorMenu" class="list-group position-absolute w-100 shadow-sm d-none" style="z-index:1080; max-height:220px; overflow-y:auto;"></div>
+                </div>
+                <select id="addScheduleInstructor" class="form-select d-none"></select>
               </div>
               <div class="mb-0">
                 <label class="form-label mb-1">Room</label>
-                <select id="addScheduleRoom" class="form-select"></select>
+                <div class="position-relative">
+                  <input id="addScheduleRoomSearch" type="text" autocomplete="off" class="form-control mb-1" placeholder="Type to search room...">
+                  <div id="addScheduleRoomMenu" class="list-group position-absolute w-100 shadow-sm d-none" style="z-index:1080; max-height:220px; overflow-y:auto;"></div>
+                </div>
+                <select id="addScheduleRoom" class="form-select d-none"></select>
               </div>
             </form>
           </div>
@@ -795,6 +1097,10 @@ function ensureAddScheduleModal() {
     saveBtn.addEventListener('click', saveScheduleFromModal);
   }
 
+  wireModalSearchableSelect('addScheduleSubject', 'addScheduleSubjectSearch');
+  wireModalSearchableSelect('addScheduleInstructor', 'addScheduleInstructorSearch');
+  wireModalSearchableSelect('addScheduleRoom', 'addScheduleRoomSearch');
+
   const deleteBtn = getEl('deleteScheduleBtn');
   if (deleteBtn) {
     deleteBtn.addEventListener('click', deleteScheduleFromModal);
@@ -812,6 +1118,11 @@ function ensureAddScheduleModal() {
       const deleteBtnRef = getEl('deleteScheduleBtn');
       if (deleteBtnRef) deleteBtnRef.classList.add('d-none');
       setModalDaySelection([]);
+      Object.values(SEARCH_INPUT_BY_SELECT_ID).forEach(inputId => {
+        const inputEl = getEl(inputId);
+        if (inputEl) inputEl.value = '';
+      });
+      closeAllSearchMenus();
       const programRef = getEl('addScheduleProgramSelect');
       if (programRef) programRef.disabled = false;
       const classRef = getEl('addScheduleClass');
@@ -917,12 +1228,14 @@ function openAddScheduleModal(payload) {
       populateSelectOptions(getEl('addScheduleSubject'), 'Select Subject', subjects, 'id', s => `${s.subject_code} - ${s.subject_name}`);
       updateClassModeBySubject(getEl('addScheduleSubject') ? getEl('addScheduleSubject').value : '');
       updateRequiredHours();
+      syncModalSearchableInputs();
     });
   }
 
   if (modalEl) {
     modalEl.dataset.dayIndex = String(payload.dayIndex);
   }
+  syncModalSearchableInputs();
   scheduleModalInstance.show();
 }
 
@@ -1003,8 +1316,10 @@ function openEditScheduleModal(scheduleId) {
       }
       updateRequiredHours();
     }
+    syncModalSearchableInputs();
   });
 
+  syncModalSearchableInputs();
   scheduleModalInstance.show();
 }
 
