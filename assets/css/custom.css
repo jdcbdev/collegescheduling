@@ -338,6 +338,10 @@
     height: 28px;
 }
 
+.table-schedule-panel2 tbody tr {
+    height: 14px;
+}
+
 .table-schedule-main tbody td,
 .table-schedule-small tbody td {
     border-color: #dadce0;

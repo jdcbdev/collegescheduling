@@ -2,6 +2,7 @@
 // Handles rendering, loading, and adding schedules for class/instructor/room views.
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const DAYS_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const START_HOUR = 7;
 const END_HOUR = 20;
 const INTERVAL_MINUTES = 30;
@@ -44,9 +45,14 @@ const SEARCH_MENU_BY_SELECT_ID = {
 let scheduleModalInstance = null;
 let subjectProgressModalInstance = null;
 let modalBusy = false;
+let activePanelRefresh = null;
+let currentSchedulesById2 = {};
+let currentSchedulesById3 = {};
 
 document.addEventListener('DOMContentLoaded', function () {
   renderMainSchedule();
+  renderMainSchedule2();
+  renderMainSchedule3();
   ensureAddScheduleModal();
   setupDropdowns();
   loadActiveSchoolYearLabel();
@@ -156,6 +162,39 @@ function generateScheduleTableHtml() {
       html += '</tr>';
     }
   }
+
+  html += '</tbody></table>';
+  return html;
+}
+
+function generateScheduleTableHtmlShortDays() {
+  const PANEL_END_HOUR = 19;
+  let html = `<table class="table table-bordered table-sm mb-0 table-schedule-main table-schedule-panel2">
+    <thead><tr><th class="gc-time-head" style="width:52px"></th>`;
+  DAYS_SHORT.forEach(day => {
+    html += `<th>${day}</th>`;
+  });
+  html += '</tr></thead><tbody>';
+
+  for (let hour = START_HOUR; hour < PANEL_END_HOUR; hour++) {
+    for (let min = 0; min < 60; min += INTERVAL_MINUTES) {
+      const minutes = hour * 60 + min;
+      const timeLabel = min === 0 ? to12H(hour, min) : '';
+      html += `<tr data-time-minutes="${minutes}"><td class="gc-time-cell"><span class="gc-time-label">${timeLabel}</span></td>`;
+      for (let dayIndex = 0; dayIndex < DAYS.length; dayIndex++) {
+        html += `<td class="sched-grid-cell" data-day-index="${dayIndex}" data-time-minutes="${minutes}"></td>`;
+      }
+      html += '</tr>';
+    }
+  }
+
+  // Closing label row at 7:00 PM
+  const closingMinutes = PANEL_END_HOUR * 60;
+  html += `<tr data-time-minutes="${closingMinutes}"><td class="gc-time-cell"><span class="gc-time-label">${to12H(PANEL_END_HOUR, 0)}</span></td>`;
+  for (let dayIndex = 0; dayIndex < DAYS.length; dayIndex++) {
+    html += `<td class="sched-grid-cell" data-day-index="${dayIndex}" data-time-minutes="${closingMinutes}"></td>`;
+  }
+  html += '</tr>';
 
   html += '</tbody></table>';
   return html;
@@ -743,6 +782,8 @@ function loadActiveSchoolYearLabel() {
       if (!data || !data.success || !data.data) {
         appState.activeSchoolYearText = 'SY: Not set';
         updateScheduleHeaderTitle();
+        updateScheduleHeaderTitle2();
+        updateScheduleHeaderTitle3();
         return;
       }
 
@@ -755,10 +796,14 @@ function loadActiveSchoolYearLabel() {
       const semText = semMap[String(sy.semester)] || `Sem ${sy.semester}`;
       appState.activeSchoolYearText = `SY: ${sy.start_year}-${sy.end_year} | ${semText}`;
       updateScheduleHeaderTitle();
+      updateScheduleHeaderTitle2();
+      updateScheduleHeaderTitle3();
     })
     .catch(() => {
       appState.activeSchoolYearText = 'SY: Not set';
       updateScheduleHeaderTitle();
+      updateScheduleHeaderTitle2();
+      updateScheduleHeaderTitle3();
     });
 }
 
@@ -1155,6 +1200,7 @@ function setModalAlert(message) {
 }
 
 function openAddScheduleModal(payload) {
+  activePanelRefresh = payload.panelRefresh || refreshScheduleByCurrentSelection;
   ensureAddScheduleModal();
   const dayName = DAYS[payload.dayIndex];
 
@@ -1239,8 +1285,9 @@ function openAddScheduleModal(payload) {
   scheduleModalInstance.show();
 }
 
-function openEditScheduleModal(scheduleId) {
-  const schedule = appState.currentSchedulesById[scheduleId];
+function openEditScheduleModal(scheduleId, panelRefresh) {
+  activePanelRefresh = panelRefresh || refreshScheduleByCurrentSelection;
+  const schedule = appState.currentSchedulesById[scheduleId] || currentSchedulesById2[scheduleId] || currentSchedulesById3[scheduleId];
   if (!schedule) {
     return;
   }
@@ -1415,7 +1462,7 @@ function saveScheduleFromModal() {
         }
 
         scheduleModalInstance.hide();
-        refreshScheduleByCurrentSelection();
+        (activePanelRefresh || refreshScheduleByCurrentSelection)();
       })
       .catch(() => {
         setModalAlert('Failed to save schedule. Please try again.');
@@ -1449,12 +1496,12 @@ function saveScheduleFromModal() {
         } else {
           setModalAlert(`Saved ${results.length - failed.length}/${results.length}. ${(first && first.message) ? first.message : 'Unable to save some schedules.'}`);
         }
-        refreshScheduleByCurrentSelection();
+        (activePanelRefresh || refreshScheduleByCurrentSelection)();
         return;
       }
 
       scheduleModalInstance.hide();
-      refreshScheduleByCurrentSelection();
+      (activePanelRefresh || refreshScheduleByCurrentSelection)();
     })
     .finally(() => {
       modalBusy = false;
@@ -1497,7 +1544,7 @@ function deleteScheduleFromModal() {
         return;
       }
       scheduleModalInstance.hide();
-      refreshScheduleByCurrentSelection();
+      (activePanelRefresh || refreshScheduleByCurrentSelection)();
     })
     .catch(() => {
       setModalAlert('Failed to delete schedule. Please try again.');
@@ -1543,6 +1590,8 @@ function setupDropdowns() {
   ]).finally(() => {
     updateHeaderAndFilters();
     refreshScheduleByCurrentSelection();
+    setupPanel2Dropdowns();
+    setupPanel3Dropdowns();
   });
 
   if (scheduleType) {
@@ -1723,5 +1772,357 @@ function openSubjectProgressModal(classId) {
 
     if (contentEl) contentEl.innerHTML = tableHtml;
   });
+}
+
+// ============================================================
+// PANEL 2 — independent schedule viewer (60/40 layout)
+// ============================================================
+
+function getActiveType2() {
+  return 'instructor';
+}
+
+function getActiveTypeLabel2() {
+  return 'Instructor';
+}
+
+function updateScheduleHeaderTitle2() {
+  const scheduleLabel = getEl('scheduleLabel2');
+  if (!scheduleLabel) return;
+  scheduleLabel.textContent = getActiveTypeLabel2();
+}
+
+function getCurrentContextSelection2() {
+  const instructorId = getEl('instructorDropdown2') ? getEl('instructorDropdown2').value : '';
+  return { type: 'instructor', id: instructorId, label: 'instructor' };
+}
+
+function renderMainSchedule2() {
+  const container = getEl('scheduleTableContainer2');
+  if (container) {
+    container.innerHTML = generateScheduleTableHtmlShortDays();
+    bindGridCellClickHandlers2();
+  }
+}
+
+function bindGridCellClickHandlers2() {
+  const container = getEl('scheduleTableContainer2');
+  if (!container) return;
+  const cells = container.querySelectorAll('td[data-day-index][data-time-minutes]');
+  cells.forEach(cell => {
+    cell.addEventListener('click', function () {
+      const context = getCurrentContextSelection2();
+      if (!context.id) {
+        alert(`Please select a ${context.label} first before adding a schedule.`);
+        return;
+      }
+      if (this.classList.contains('sched-occupied-cell')) return;
+      const dayIndex = Number(this.dataset.dayIndex);
+      const startMinutes = Number(this.dataset.timeMinutes);
+      if (Number.isNaN(dayIndex) || Number.isNaN(startMinutes) || dayIndex < 0 || dayIndex > 6) return;
+      openAddScheduleModal({
+        dayIndex,
+        startMinutes,
+        endMinutes: Math.min(startMinutes + INTERVAL_MINUTES, END_HOUR * 60),
+        contextType: context.type,
+        contextId: context.id,
+        panelRefresh: refreshScheduleByCurrentSelection2
+      });
+    });
+  });
+}
+
+function bindScheduleCardClickHandlers2() {
+  const container = getEl('scheduleTableContainer2');
+  if (!container) return;
+  const cards = container.querySelectorAll('.sched-event-card[data-schedule-id]');
+  cards.forEach(card => {
+    card.addEventListener('click', function (event) {
+      event.stopPropagation();
+      const scheduleId = Number(this.dataset.scheduleId || 0);
+      if (scheduleId > 0 && currentSchedulesById2[scheduleId]) {
+        openEditScheduleModal(scheduleId, refreshScheduleByCurrentSelection2);
+      }
+    });
+  });
+}
+
+function plotSchedules2(containerId, schedules, viewType = 'class') {
+  const container = getEl(containerId);
+  if (!container) return;
+  const table = container.querySelector('table');
+  if (!table) return;
+
+  const dayStart = START_HOUR * 60;
+  const dayEnd = 19 * 60;
+  const colorMap = buildColorMapForSchedules(schedules, viewType);
+  currentSchedulesById2 = {};
+
+  schedules.forEach(item => {
+    if (item && item.id) {
+      currentSchedulesById2[Number(item.id)] = item;
+    }
+    const dayIndex = normalizeDayIndex(item.day_of_week);
+    const startMinutes = timeStringToMinutes(item.start_time);
+    const endMinutes = timeStringToMinutes(item.end_time);
+
+    if (dayIndex < 0 || Number.isNaN(startMinutes) || Number.isNaN(endMinutes) || endMinutes <= startMinutes) return;
+
+    const clampedStart = Math.max(startMinutes, dayStart);
+    const clampedEnd = Math.min(endMinutes, dayEnd);
+    if (clampedEnd <= clampedStart) return;
+
+    const startSlot = Math.floor((clampedStart - dayStart) / INTERVAL_MINUTES);
+    const endSlot = Math.ceil((clampedEnd - dayStart) / INTERVAL_MINUTES);
+    const rowspan = Math.max(1, endSlot - startSlot);
+    const startCellMinutes = dayStart + (startSlot * INTERVAL_MINUTES);
+
+    const startCell = table.querySelector(`td[data-day-index="${dayIndex}"][data-time-minutes="${startCellMinutes}"]`);
+    if (!startCell) return;
+
+    startCell.classList.add('sched-occupied-cell');
+    if (item && item.id) startCell.dataset.scheduleId = String(item.id);
+    startCell.rowSpan = rowspan;
+    const key = getColorKeyByView(item, viewType);
+    startCell.innerHTML = buildScheduleCellHtml(item, colorMap[key]);
+
+    for (let slot = startSlot + 1; slot < endSlot; slot++) {
+      const coveredMinutes = dayStart + (slot * INTERVAL_MINUTES);
+      const coveredCell = table.querySelector(`td[data-day-index="${dayIndex}"][data-time-minutes="${coveredMinutes}"]`);
+      if (coveredCell) coveredCell.remove();
+    }
+  });
+
+  bindGridCellClickHandlers2();
+  bindScheduleCardClickHandlers2();
+}
+
+function fetchAndRenderSchedules2(type, id, containerId) {
+  if (!id) return Promise.resolve();
+  return fetch(`schedule_actions.php?action=getSchedule&type=${encodeURIComponent(type)}&id=${encodeURIComponent(id)}`)
+    .then(r => r.json())
+    .then(data => {
+      if (data && data.success && Array.isArray(data.data)) {
+        plotSchedules2(containerId, data.data, type);
+      }
+    })
+    .catch(() => {});
+}
+
+function refreshScheduleByCurrentSelection2() {
+  const current = getCurrentContextSelection2();
+  renderMainSchedule2();
+  if (current.id) {
+    return fetchAndRenderSchedules2(current.type, current.id, 'scheduleTableContainer2');
+  }
+  return Promise.resolve();
+}
+
+function loadClassSections2(programId) {
+  const dropdown = getEl('classSectionDropdown2');
+  if (!programId) {
+    if (dropdown) dropdown.innerHTML = '<option value="">Select Class</option>';
+    return Promise.resolve();
+  }
+  return fetch(`schedule_actions.php?action=getClassSections&program_id=${encodeURIComponent(programId)}`)
+    .then(r => r.json())
+    .then(data => {
+      if (dropdown && data.success && Array.isArray(data.data)) {
+        populateSelectOptions(dropdown, 'Select Class', data.data, 'id', c => c.section_name);
+      }
+    });
+}
+
+function setupPanel2Dropdowns() {
+  renderMainSchedule2();
+
+  const instructorDropdown2 = getEl('instructorDropdown2');
+  if (!instructorDropdown2) return;
+  const selectedValue = instructorDropdown2.value;
+
+  populateSelectOptions(instructorDropdown2, 'Select Instructor', appState.instructors, 'id', i => `${i.instructor_code} - ${i.lastname}, ${i.firstname}`);
+  if (selectedValue) {
+    instructorDropdown2.value = selectedValue;
+  }
+
+  updateScheduleHeaderTitle2();
+
+  if (instructorDropdown2.dataset.wired !== '1') {
+    instructorDropdown2.addEventListener('change', function () {
+      refreshScheduleByCurrentSelection2();
+    });
+    instructorDropdown2.dataset.wired = '1';
+  }
+}
+
+// ============================================================
+// PANEL 3 — room schedule viewer (stacked below panel 2)
+// ============================================================
+
+function getActiveTypeLabel3() {
+  return 'Room';
+}
+
+function updateScheduleHeaderTitle3() {
+  const scheduleLabel = getEl('scheduleLabel3');
+  if (!scheduleLabel) return;
+  scheduleLabel.textContent = getActiveTypeLabel3();
+}
+
+function getCurrentContextSelection3() {
+  const roomId = getEl('roomDropdown3') ? getEl('roomDropdown3').value : '';
+  return { type: 'room', id: roomId, label: 'room' };
+}
+
+function renderMainSchedule3() {
+  const container = getEl('scheduleTableContainer3');
+  if (container) {
+    container.innerHTML = generateScheduleTableHtmlShortDays();
+    bindGridCellClickHandlers3();
+  }
+}
+
+function bindGridCellClickHandlers3() {
+  const container = getEl('scheduleTableContainer3');
+  if (!container) return;
+  const cells = container.querySelectorAll('td[data-day-index][data-time-minutes]');
+  cells.forEach(cell => {
+    cell.addEventListener('click', function () {
+      const context = getCurrentContextSelection3();
+      if (!context.id) {
+        alert(`Please select a ${context.label} first before adding a schedule.`);
+        return;
+      }
+      if (this.classList.contains('sched-occupied-cell')) return;
+      const dayIndex = Number(this.dataset.dayIndex);
+      const startMinutes = Number(this.dataset.timeMinutes);
+      if (Number.isNaN(dayIndex) || Number.isNaN(startMinutes) || dayIndex < 0 || dayIndex > 6) return;
+      openAddScheduleModal({
+        dayIndex,
+        startMinutes,
+        endMinutes: Math.min(startMinutes + INTERVAL_MINUTES, END_HOUR * 60),
+        contextType: context.type,
+        contextId: context.id,
+        panelRefresh: refreshScheduleByCurrentSelection3
+      });
+    });
+  });
+}
+
+function bindScheduleCardClickHandlers3() {
+  const container = getEl('scheduleTableContainer3');
+  if (!container) return;
+  const cards = container.querySelectorAll('.sched-event-card[data-schedule-id]');
+  cards.forEach(card => {
+    card.addEventListener('click', function (event) {
+      event.stopPropagation();
+      const scheduleId = Number(this.dataset.scheduleId || 0);
+      if (scheduleId > 0 && currentSchedulesById3[scheduleId]) {
+        openEditScheduleModal(scheduleId, refreshScheduleByCurrentSelection3);
+      }
+    });
+  });
+}
+
+function plotSchedules3(containerId, schedules, viewType = 'room') {
+  const container = getEl(containerId);
+  if (!container) return;
+  const table = container.querySelector('table');
+  if (!table) return;
+
+  const dayStart = START_HOUR * 60;
+  const dayEnd = 19 * 60;
+  const colorMap = buildColorMapForSchedules(schedules, viewType);
+  currentSchedulesById3 = {};
+
+  schedules.forEach(item => {
+    if (item && item.id) {
+      currentSchedulesById3[Number(item.id)] = item;
+    }
+    const dayIndex = normalizeDayIndex(item.day_of_week);
+    const startMinutes = timeStringToMinutes(item.start_time);
+    const endMinutes = timeStringToMinutes(item.end_time);
+
+    if (dayIndex < 0 || Number.isNaN(startMinutes) || Number.isNaN(endMinutes) || endMinutes <= startMinutes) return;
+
+    const clampedStart = Math.max(startMinutes, dayStart);
+    const clampedEnd = Math.min(endMinutes, dayEnd);
+    if (clampedEnd <= clampedStart) return;
+
+    const startSlot = Math.floor((clampedStart - dayStart) / INTERVAL_MINUTES);
+    const endSlot = Math.ceil((clampedEnd - dayStart) / INTERVAL_MINUTES);
+    const rowspan = Math.max(1, endSlot - startSlot);
+    const startCellMinutes = dayStart + (startSlot * INTERVAL_MINUTES);
+
+    const startCell = table.querySelector(`td[data-day-index="${dayIndex}"][data-time-minutes="${startCellMinutes}"]`);
+    if (!startCell) return;
+
+    startCell.classList.add('sched-occupied-cell');
+    if (item && item.id) startCell.dataset.scheduleId = String(item.id);
+    startCell.rowSpan = rowspan;
+    const key = getColorKeyByView(item, viewType);
+    startCell.innerHTML = buildScheduleCellHtml(item, colorMap[key]);
+
+    for (let slot = startSlot + 1; slot < endSlot; slot++) {
+      const coveredMinutes = dayStart + (slot * INTERVAL_MINUTES);
+      const coveredCell = table.querySelector(`td[data-day-index="${dayIndex}"][data-time-minutes="${coveredMinutes}"]`);
+      if (coveredCell) coveredCell.remove();
+    }
+  });
+
+  bindGridCellClickHandlers3();
+  bindScheduleCardClickHandlers3();
+}
+
+function fetchAndRenderSchedules3(type, id, containerId) {
+  if (!id) return Promise.resolve();
+  return fetch(`schedule_actions.php?action=getSchedule&type=${encodeURIComponent(type)}&id=${encodeURIComponent(id)}`)
+    .then(r => r.json())
+    .then(data => {
+      if (data && data.success && Array.isArray(data.data)) {
+        plotSchedules3(containerId, data.data, type);
+      }
+    })
+    .catch(() => {});
+}
+
+function refreshScheduleByCurrentSelection3() {
+  const current = getCurrentContextSelection3();
+  renderMainSchedule3();
+  if (current.id) {
+    return fetchAndRenderSchedules3(current.type, current.id, 'scheduleTableContainer3');
+  }
+  return Promise.resolve();
+}
+
+function setupPanel3Dropdowns() {
+  renderMainSchedule3();
+
+  const roomDropdown3 = getEl('roomDropdown3');
+  if (!roomDropdown3) return;
+  const selectedValue = roomDropdown3.value;
+  const applyRoomOptions = () => {
+    populateSelectOptions(roomDropdown3, 'Select Room', appState.rooms, 'id', rm => rm.room_name);
+    if (selectedValue) {
+      roomDropdown3.value = selectedValue;
+    }
+  };
+
+  if (Array.isArray(appState.rooms) && appState.rooms.length > 0) {
+    applyRoomOptions();
+  } else {
+    loadRooms().finally(() => {
+      applyRoomOptions();
+    });
+  }
+
+  updateScheduleHeaderTitle3();
+
+  if (roomDropdown3.dataset.wired !== '1') {
+    roomDropdown3.addEventListener('change', function () {
+      refreshScheduleByCurrentSelection3();
+    });
+    roomDropdown3.dataset.wired = '1';
+  }
 }
 
