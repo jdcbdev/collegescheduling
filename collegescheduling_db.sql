@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Apr 18, 2026 at 06:31 PM
+-- Generation Time: Apr 19, 2026 at 03:26 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -52,6 +52,34 @@ INSERT INTO `class` (`id`, `schoolyear_id`, `curriculum_id`, `section_name`, `ye
 (7, 3, 2, 'BSIT3A', 3, '2026-04-18 10:12:51'),
 (8, 3, 2, 'BSIT3B', 3, '2026-04-18 10:13:01'),
 (9, 3, 2, 'BSIT3C', 3, '2026-04-18 10:13:10');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `college_officials`
+--
+
+CREATE TABLE `college_officials` (
+  `id` int(11) NOT NULL,
+  `name` varchar(150) NOT NULL,
+  `title` varchar(150) NOT NULL,
+  `department_id` int(11) DEFAULT NULL,
+  `is_dean` tinyint(1) NOT NULL DEFAULT 0,
+  `is_secretary` tinyint(1) NOT NULL DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `college_officials`
+--
+
+INSERT INTO `college_officials` (`id`, `name`, `title`, `department_id`, `is_dean`, `is_secretary`, `created_at`) VALUES
+(1, 'Jaydee C. Ballaho, MIT', 'Head, Computer Science Department', 1, 0, 0, '2026-04-19 11:30:52'),
+(2, 'Jason A. Catadman, MIT', 'Head, Information Technology Department', 2, 0, 0, '2026-04-19 11:31:29'),
+(3, 'Lucy F. Felix-Sadiwa, MSCS', 'Head, MIT Department', 4, 0, 0, '2026-04-19 11:31:58'),
+(4, 'Ceed Jezreel B. Lorenzo, MIT', 'Head, ACT Department', 3, 0, 0, '2026-04-19 11:32:20'),
+(5, 'Mark L. Flores, PhD', 'Dean, College of Computing Studies', NULL, 1, 0, '2026-04-19 11:32:48'),
+(6, 'Jaydee C. Ballaho, MIT', 'College Secretary', NULL, 0, 1, '2026-04-19 12:34:58');
 
 -- --------------------------------------------------------
 
@@ -525,6 +553,13 @@ ALTER TABLE `class`
   ADD KEY `curriculum_id` (`curriculum_id`);
 
 --
+-- Indexes for table `college_officials`
+--
+ALTER TABLE `college_officials`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `fk_college_officials_department` (`department_id`);
+
+--
 -- Indexes for table `curriculum`
 --
 ALTER TABLE `curriculum`
@@ -596,6 +631,12 @@ ALTER TABLE `class`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
+-- AUTO_INCREMENT for table `college_officials`
+--
+ALTER TABLE `college_officials`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+
+--
 -- AUTO_INCREMENT for table `curriculum`
 --
 ALTER TABLE `curriculum`
@@ -629,7 +670,7 @@ ALTER TABLE `rooms`
 -- AUTO_INCREMENT for table `schedules`
 --
 ALTER TABLE `schedules`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=62;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=67;
 
 --
 -- AUTO_INCREMENT for table `schoolyear`
@@ -653,6 +694,12 @@ ALTER TABLE `subjects`
 ALTER TABLE `class`
   ADD CONSTRAINT `class_ibfk_1` FOREIGN KEY (`schoolyear_id`) REFERENCES `schoolyear` (`id`),
   ADD CONSTRAINT `class_ibfk_2` FOREIGN KEY (`curriculum_id`) REFERENCES `curriculum` (`id`);
+
+--
+-- Constraints for table `college_officials`
+--
+ALTER TABLE `college_officials`
+  ADD CONSTRAINT `fk_college_officials_department` FOREIGN KEY (`department_id`) REFERENCES `departments` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 --
 -- Constraints for table `curriculum`
