@@ -25,6 +25,7 @@ const appState = {
   instructors: [],
   rooms: [],
   activeSchoolYearText: 'SY: --',
+  activeSchoolYearId: 0,
   subjectsByClass: {},
   currentSchedulesById: {},
   modalSelectOptionsCache: {}
@@ -55,6 +56,7 @@ document.addEventListener('DOMContentLoaded', function () {
   ensureAddScheduleModal();
   setupDropdowns();
   loadActiveSchoolYearLabel();
+  setupPrintButton();
 });
 
 function getEl(id) {
@@ -806,6 +808,7 @@ function loadActiveSchoolYearLabel() {
     .then(data => {
       if (!data || !data.success || !data.data) {
         appState.activeSchoolYearText = 'SY: Not set';
+        appState.activeSchoolYearId = 0;
         updateScheduleHeaderTitle();
         updateScheduleHeaderTitle2();
         updateScheduleHeaderTitle3();
@@ -813,6 +816,7 @@ function loadActiveSchoolYearLabel() {
       }
 
       const sy = data.data;
+      appState.activeSchoolYearId = sy.id;
       const semMap = {
         '1': '1st Sem',
         '2': '2nd Sem',
@@ -826,6 +830,7 @@ function loadActiveSchoolYearLabel() {
     })
     .catch(() => {
       appState.activeSchoolYearText = 'SY: Not set';
+      appState.activeSchoolYearId = 0;
       updateScheduleHeaderTitle();
       updateScheduleHeaderTitle2();
       updateScheduleHeaderTitle3();
@@ -1795,6 +1800,35 @@ function openSubjectProgressModal(classId) {
 
     if (contentEl) contentEl.innerHTML = tableHtml;
   });
+}
+
+// ============================================================
+// PRINT/EXPORT functionality
+// ============================================================
+
+function setupPrintButton() {
+  const printBtn = getEl('btnPrintSchedule');
+  if (printBtn) {
+    printBtn.addEventListener('click', openPrintView);
+  }
+}
+
+function openPrintView() {
+  const context = getCurrentContextSelection();
+  
+  if (!context.id) {
+    alert('Please select a ' + context.label + ' to print');
+    return;
+  }
+  
+  const params = new URLSearchParams({
+    type: context.type,
+    id: context.id,
+    schoolyear_id: appState.activeSchoolYearId || 0
+  });
+  
+  const printUrl = '../scheduling/schedule_print.php?' + params.toString();
+  window.open(printUrl, 'schedule_print', 'width=1200,height=800,menubar=yes,toolbar=yes');
 }
 
 // ============================================================
