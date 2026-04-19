@@ -388,7 +388,7 @@ foreach ($schedules as $sched) {
         }
         
         td {
-            vertical-align: top;
+            vertical-align: middle;
             font-size: 10px;
             line-height: 1.2;
         }
@@ -537,14 +537,14 @@ foreach ($schedules as $sched) {
             </div>
             <div class="info-field load-field<?php echo $isInstructorView ? ' align-right' : ''; ?>">
                 <span class="info-label">Regular Load:</span>
-                <span id="regularLoadValue" class="info-value"></span>
+                <span id="regularLoadValue" class="info-value text-align-center"></span>
             </div>
         </div>
         
         <div class="info-row">
             <div class="info-field">
                 <span class="info-label"><?php echo ucfirst($type); ?>:</span>
-                <span class="info-value text-align-center"><?php echo htmlspecialchars($titleInfo); ?></span>
+                <span class="info-value"><?php echo htmlspecialchars($titleInfo); ?></span>
             </div>
             <div class="info-field load-field<?php echo $isInstructorView ? ' align-right' : ''; ?>">
                 <span class="info-label">Overload:</span>
