@@ -85,6 +85,12 @@
           </a>
         </li>
         <li class="sidebar-item">
+          <a class="sidebar-link<?= $activePage === 'college-officials' ? ' active' : '' ?>" href="<?= htmlspecialchars($navBasePath) ?>settings/college_officials.php" aria-expanded="false" data-bs-toggle="tooltip" data-bs-placement="right" title="College Officials">
+            <iconify-icon icon="solar:users-group-rounded-line-duotone"></iconify-icon>
+            <span class="hide-menu">College Officials</span>
+          </a>
+        </li>
+        <li class="sidebar-item">
           <a class="sidebar-link<?= $activePage === 'schoolyear' ? ' active' : '' ?>" href="<?= htmlspecialchars($navBasePath) ?>settings/schoolyear.php" aria-expanded="false" data-bs-toggle="tooltip" data-bs-placement="right" title="School Year">
             <iconify-icon icon="solar:calendar-line-duotone"></iconify-icon>
             <span class="hide-menu">School Year</span>

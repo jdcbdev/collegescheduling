@@ -34,6 +34,20 @@ $semesterMap = [
 ];
 $semesterLabel = $semesterMap[$semesterValue] ?? ($semesterValue !== '' ? ('Sem ' . $semesterValue) : '');
 $isInstructorView = ($type === 'instructor');
+$isClassView = ($type === 'class');
+$isRoomView = ($type === 'room');
+$printFormTitle = 'FACULTY LOADING';
+if ($isClassView) {
+    $printFormTitle = 'CLASS SCHEDULE';
+} elseif ($isRoomView) {
+    $printFormTitle = 'ROOM UTILIZATION';
+}
+$leftLogoPath = '../assets/images/logos/image 2.png';
+$rightLogoPath = '../assets/images/logos/image 1.png';
+$preparedByName = '';
+$preparedByRole = 'COLLEGE SECRETARY';
+$approvedByName = '';
+$approvedByRole = 'DEAN, COLLEGE OF COMPUTING STUDIES';
 
 function timeToMinutes(string $timeValue): int {
     $parts = explode(':', substr($timeValue, 0, 5));
@@ -139,13 +153,15 @@ function buildColorMapForSchedules(array $schedules, string $viewType): array {
 $filterColumn = 's.class_id';
 $titleInfo = 'Class Schedule';
 $departmentInfo = '';
+$selectedDepartmentId = null;
 
 if ($type === 'instructor') {
     $filterColumn = 's.instructor_id';
-    $stmt = $conn->prepare("SELECT CONCAT(firstname, ' ', lastname) as name, d.department_name FROM instructors i LEFT JOIN departments d ON i.department_id = d.id WHERE i.id = ?");
+    $stmt = $conn->prepare("SELECT CONCAT(firstname, ' ', lastname) as name, i.department_id, d.department_name FROM instructors i LEFT JOIN departments d ON i.department_id = d.id WHERE i.id = ?");
     $stmt->execute([$id]);
     $info = $stmt->fetch(PDO::FETCH_ASSOC);
     $titleInfo = $info['name'] ?? 'Unknown Instructor';
+    $selectedDepartmentId = isset($info['department_id']) ? (int)$info['department_id'] : null;
     $departmentInfo = $info['department_name'] ?? '';
 } elseif ($type === 'room') {
     $filterColumn = 's.room_id';
@@ -159,6 +175,38 @@ if ($type === 'instructor') {
     $info = $stmt->fetch(PDO::FETCH_ASSOC);
     $titleInfo = $info['section_name'] ?? 'Unknown Class';
     $departmentInfo = $info['program_name'] ?? '';
+}
+
+try {
+    $tableCheck = $conn->query("SHOW TABLES LIKE 'college_officials'");
+    $hasOfficialTable = $tableCheck && $tableCheck->fetch(PDO::FETCH_ASSOC);
+
+    if ($hasOfficialTable) {
+        if ($isInstructorView && $selectedDepartmentId !== null && $selectedDepartmentId > 0) {
+            $secStmt = $conn->prepare("SELECT name, title FROM college_officials WHERE is_dean = 0 AND department_id = :department_id ORDER BY id ASC LIMIT 1");
+            $secStmt->bindValue(':department_id', $selectedDepartmentId, PDO::PARAM_INT);
+            $secStmt->execute();
+            $secRow = $secStmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!empty($secRow['name'])) {
+                $preparedByName = strtoupper((string)$secRow['name']);
+            }
+            if (!empty($secRow['title'])) {
+                $preparedByRole = strtoupper((string)$secRow['title']);
+            }
+        }
+
+        $deanStmt = $conn->query("SELECT name, title FROM college_officials WHERE is_dean = 1 ORDER BY id ASC LIMIT 1");
+        $deanRow = $deanStmt ? $deanStmt->fetch(PDO::FETCH_ASSOC) : null;
+        if (!empty($deanRow['name'])) {
+            $approvedByName = strtoupper((string)$deanRow['name']);
+        }
+        if (!empty($deanRow['title'])) {
+            $approvedByRole = strtoupper((string)$deanRow['title']);
+        }
+    }
+} catch (Exception $e) {
+    // Keep default signature text when officials table is unavailable.
 }
 
 // Fetch schedules for the selected entity
@@ -255,6 +303,27 @@ foreach ($schedules as $sched) {
             padding: 0;
             box-sizing: border-box;
         }
+
+        .header-main {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header-top{
+            display: flex;
+            justify-content: center;
+        }
+
+        .header-top-text{
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: max-content;
+        }
+
+        .header-top-text h3, .header-top-text p {
+            display: flex;
+        }
         
         @media print {
             @page {
@@ -276,7 +345,8 @@ foreach ($schedules as $sched) {
         
         .print-container {
             width: 13in;
-            min-height: 8.5in;
+            height: 8.5in;
+            max-height: 8.5in;
             background: white;
             margin: 0 auto;
             padding: 0.25in;
@@ -289,6 +359,40 @@ foreach ($schedules as $sched) {
             margin-bottom: 20px;
             border-bottom: 2px solid #000;
             padding-bottom: 10px;
+        }
+
+        .header-top {
+            display: flex;
+            grid-template-columns: 76px 1fr 76px;
+            align-items: center;
+            column-gap: 8px;
+            margin-bottom: 4px;
+        }
+
+        .header-logo-wrap {
+            height: 74px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .header-logo {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .header-top-text {
+            text-align: center;
+        }
+
+        .header-top-text h3 {
+            margin: 1px 0;
+        }
+
+        .header-top-text p {
+            margin: 1px 0;
+            font-size: 12px;
         }
         
         .header h3 {
@@ -377,7 +481,7 @@ foreach ($schedules as $sched) {
             border: 1px solid #000;
             padding: 4px;
             text-align: left;
-            height: 25px;
+            height: 20px;
         }
         
         th {
@@ -390,7 +494,10 @@ foreach ($schedules as $sched) {
         td {
             vertical-align: middle;
             font-size: 10px;
-            line-height: 1.2;
+        }
+
+        .room-print td {
+            height: 23px;
         }
         
         .schedule-cell {
@@ -505,8 +612,9 @@ foreach ($schedules as $sched) {
         }
     </style>
 </head>
-<body>
+<body class="<?php echo $isRoomView ? 'room-print' : ''; ?>">
     <div class="no-print">
+        <?php if ($isInstructorView): ?>
         <div class="control-panel">
             <div class="control-field">
                 <label class="control-label" for="regularLoadInput">Regular Load</label>
@@ -517,6 +625,7 @@ foreach ($schedules as $sched) {
                 <input id="overloadInput" class="control-input text-align-cener" type="text" placeholder="Enter overload">
             </div>
         </div>
+        <?php endif; ?>
         <button class="btn" onclick="window.print()">🖨️ Print</button>
         <button class="btn" onclick="downloadPDF()">⬇️ Download PDF</button>
         <button class="btn" onclick="window.close()">❌ Close</button>
@@ -524,12 +633,25 @@ foreach ($schedules as $sched) {
     
     <div class="print-container">
         <div class="header">
-            <h3>WESTERN MINDANAO STATE UNIVERSITY</h3>
-            <h3>COLLEGE OF COMPUTING STUDIES</h3>
-            <p>S.Y. <?php echo htmlspecialchars($schoolYear['start_year'] . '-' . $schoolYear['end_year'] . ', ' . $semesterLabel); ?></p>
-            <div class="title">LOADING FORM</div>
+            <div class="header-main">
+                <div class="header-top">
+                    <div class="header-logo-wrap" style="margin-right: 20px;">
+                        <img class="header-logo" src="<?php echo htmlspecialchars($leftLogoPath); ?>" alt="Left Logo">
+                    </div>
+                    <div class="header-top-text">
+                        <h3>WESTERN MINDANAO STATE UNIVERSITY</h3>
+                        <h3>COLLEGE OF COMPUTING STUDIES</h3>
+                        <p>S.Y. <?php echo htmlspecialchars($schoolYear['start_year'] . '-' . $schoolYear['end_year'] . ', ' . $semesterLabel); ?></p>
+                    </div>
+                    <div class="header-logo-wrap" style="margin-left: 20px;">
+                        <img class="header-logo" src="<?php echo htmlspecialchars($rightLogoPath); ?>" alt="Right Logo">
+                    </div>
+                </div>
+                <div class="title"><?php echo htmlspecialchars($printFormTitle); ?></div>
+            </div>
         </div>
-        
+
+        <?php if ($isInstructorView): ?>
         <div class="info-row">
             <div class="info-field">
                 <span class="info-label">Department:</span>
@@ -540,10 +662,10 @@ foreach ($schedules as $sched) {
                 <span id="regularLoadValue" class="info-value text-align-center"></span>
             </div>
         </div>
-        
+
         <div class="info-row">
             <div class="info-field">
-                <span class="info-label"><?php echo ucfirst($type); ?>:</span>
+                <span class="info-label">Instructor:</span>
                 <span class="info-value"><?php echo htmlspecialchars($titleInfo); ?></span>
             </div>
             <div class="info-field load-field<?php echo $isInstructorView ? ' align-right' : ''; ?>">
@@ -551,6 +673,25 @@ foreach ($schedules as $sched) {
                 <span id="overloadValue" class="info-value text-align-center"></span>
             </div>
         </div>
+        <?php elseif ($isClassView): ?>
+        <div class="info-row">
+            <div class="info-field">
+                <span class="info-label">Class:</span>
+                <span class="info-value"><?php echo htmlspecialchars($titleInfo); ?></span>
+            </div>
+            <div class="info-field">
+                <span class="info-label">Program:</span>
+                <span class="info-value"><?php echo htmlspecialchars($departmentInfo); ?></span>
+            </div>
+        </div>
+        <?php elseif ($isRoomView): ?>
+        <div class="info-row">
+            <div class="info-field">
+                <span class="info-label">Room:</span>
+                <span class="info-value"><?php echo htmlspecialchars($titleInfo); ?></span>
+            </div>
+        </div>
+        <?php endif; ?>
         
         <table>
             <thead>
@@ -616,18 +757,20 @@ foreach ($schedules as $sched) {
             </tbody>
         </table>
         
+        <?php if (!$isRoomView): ?>
         <div class="footer">
             <div class="signature-line">
                 <p>PREPARED BY:</p>
-                <div class="signature-name text-align-left">____________________________________</div>
-                <div class="signature-role text-align-center">COLLEGE SECRETARY</div>
+                <div class="signature-name text-align-left"><?php echo htmlspecialchars($preparedByName !== '' ? $preparedByName : '____________________________________'); ?></div>
+                <div class="signature-role text-align-center"><?php echo htmlspecialchars($preparedByRole); ?></div>
             </div>
             <div class="signature-line">
                 <p>APPROVED BY:</p>
-                <div class="signature-name text-align-left">____________________________________</div>
-                <div class="signature-role text-align-center">DEAN, COLLEGE OF COMPUTING STUDIES</div>
+                <div class="signature-name text-align-left"><?php echo htmlspecialchars($approvedByName !== '' ? $approvedByName : '____________________________________'); ?></div>
+                <div class="signature-role text-align-center"><?php echo htmlspecialchars($approvedByRole); ?></div>
             </div>
         </div>
+        <?php endif; ?>
     </div>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
