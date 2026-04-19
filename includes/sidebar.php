@@ -112,7 +112,45 @@
 (function () {
   const wrapper = document.getElementById('main-wrapper');
   const sidebarLinks = document.querySelectorAll('.left-sidebar .sidebar-link[data-bs-toggle="tooltip"]');
+  const SIDEBAR_STATE_KEY = 'leftSidebarDesktopState';
   let tooltipInstances = [];
+
+  function isDesktopViewport() {
+    return window.innerWidth >= 1199;
+  }
+
+  function setSidebarState(state) {
+    if (!wrapper) return;
+    const isMini = state === 'mini';
+    wrapper.classList.toggle('mini-sidebar', isMini);
+    wrapper.setAttribute('data-sidebartype', isMini ? 'mini-sidebar' : 'full');
+  }
+
+  function getCurrentSidebarState() {
+    if (!wrapper) return 'full';
+    return wrapper.classList.contains('mini-sidebar') ? 'mini' : 'full';
+  }
+
+  function saveSidebarState() {
+    if (!isDesktopViewport()) return;
+    try {
+      localStorage.setItem(SIDEBAR_STATE_KEY, getCurrentSidebarState());
+    } catch (e) {
+      // Ignore storage failures (private mode / blocked storage).
+    }
+  }
+
+  function applySavedSidebarState() {
+    if (!wrapper || !isDesktopViewport()) return;
+    try {
+      const saved = localStorage.getItem(SIDEBAR_STATE_KEY);
+      if (saved === 'mini' || saved === 'full') {
+        setSidebarState(saved);
+      }
+    } catch (e) {
+      // Ignore storage failures (private mode / blocked storage).
+    }
+  }
 
   function enableTooltips() {
     tooltipInstances = Array.from(sidebarLinks).map(el => new bootstrap.Tooltip(el, { trigger: 'hover' }));
@@ -131,13 +169,29 @@
     }
   }
 
-  // Sync on page load
-  document.addEventListener('DOMContentLoaded', syncTooltips);
+  // Restore saved state after core scripts initialize layout defaults.
+  document.addEventListener('DOMContentLoaded', function () {
+    setTimeout(function () {
+      applySavedSidebarState();
+      syncTooltips();
+    }, 60);
+  });
 
-  // Sync whenever the toggle button is clicked
+  // Re-apply saved desktop state on resize because app.min.js resets sidebartype.
+  window.addEventListener('resize', function () {
+    setTimeout(function () {
+      applySavedSidebarState();
+      syncTooltips();
+    }, 60);
+  });
+
+  // Save + sync whenever the toggle button is clicked.
   document.addEventListener('click', function (e) {
     if (e.target.closest('.sidebartoggler')) {
-      setTimeout(syncTooltips, 50);
+      setTimeout(function () {
+        saveSidebarState();
+        syncTooltips();
+      }, 60);
     }
   });
 })();
