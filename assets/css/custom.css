@@ -450,3 +450,41 @@
 .container-fluid.content-page{
     padding-top: 35px !important;
 }
+
+.schedule-layout-row .schedule-col-main,
+.schedule-layout-row .schedule-col-side {
+    transition: flex-basis 0.25s ease, width 0.25s ease;
+}
+
+.schedule-layout-row.panel2-collapsed .schedule-col-main {
+    width: calc(100% - 64px) !important;
+    flex: 0 0 calc(100% - 64px) !important;
+}
+
+.schedule-layout-row.panel2-collapsed .schedule-col-side {
+    width: 64px !important;
+    flex: 0 0 64px !important;
+}
+
+.panel2-icon-toggle {
+    font-family: tabler-icons !important;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    color: #6c757d;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    user-select: none;
+}
+
+.panel2-icon-toggle:hover,
+.panel2-icon-toggle:focus {
+    color: #495057;
+    border-color: #adb5bd;
+    outline: none;
+}

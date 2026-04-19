@@ -57,7 +57,81 @@ document.addEventListener('DOMContentLoaded', function () {
   setupDropdowns();
   loadActiveSchoolYearLabel();
   setupPrintButton();
+  setupPanel2Collapse();
 });
+
+const PANEL2_COLLAPSE_KEY = 'schedulePanel2Collapsed';
+
+function setupPanel2Collapse() {
+  const layoutRow = getEl('scheduleLayoutRow');
+  const sideCol = getEl('panel2Column');
+  const expandedContent = sideCol ? sideCol.querySelector('.schedule-side-expanded') : null;
+  const collapsedContent = sideCol ? sideCol.querySelector('.schedule-side-collapsed') : null;
+  const collapseBtn = getEl('btnTogglePanel2');
+  const expandBtn = getEl('btnExpandPanel2');
+
+  if (!layoutRow || !sideCol || !expandedContent || !collapsedContent) return;
+
+  const applyState = function (isCollapsed) {
+    layoutRow.classList.toggle('panel2-collapsed', isCollapsed);
+    expandedContent.classList.toggle('d-none', isCollapsed);
+    collapsedContent.classList.toggle('d-none', !isCollapsed);
+    if (collapseBtn) {
+      collapseBtn.setAttribute('title', isCollapsed ? 'Expand side panels' : 'Collapse side panels');
+    }
+  };
+
+  const saveState = function (isCollapsed) {
+    try {
+      localStorage.setItem(PANEL2_COLLAPSE_KEY, isCollapsed ? '1' : '0');
+    } catch (e) {
+      // Ignore storage failures.
+    }
+  };
+
+  const getSavedState = function () {
+    try {
+      return localStorage.getItem(PANEL2_COLLAPSE_KEY) === '1';
+    } catch (e) {
+      return false;
+    }
+  };
+
+  let isCollapsed = getSavedState();
+  applyState(isCollapsed);
+
+  if (collapseBtn) {
+    const onCollapseToggle = function () {
+      isCollapsed = !isCollapsed;
+      applyState(isCollapsed);
+      saveState(isCollapsed);
+    };
+
+    collapseBtn.addEventListener('click', onCollapseToggle);
+    collapseBtn.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        onCollapseToggle();
+      }
+    });
+  }
+
+  if (expandBtn) {
+    const onExpand = function () {
+      isCollapsed = false;
+      applyState(isCollapsed);
+      saveState(isCollapsed);
+    };
+
+    expandBtn.addEventListener('click', onExpand);
+    expandBtn.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        onExpand();
+      }
+    });
+  }
+}
 
 function getEl(id) {
   return document.getElementById(id);
@@ -1846,7 +1920,10 @@ function getActiveTypeLabel2() {
 function updateScheduleHeaderTitle2() {
   const scheduleLabel = getEl('scheduleLabel2');
   if (!scheduleLabel) return;
-  scheduleLabel.textContent = getActiveTypeLabel2();
+  const titleTextEl = getEl('scheduleLabel2Text');
+  if (titleTextEl) {
+    titleTextEl.textContent = getActiveTypeLabel2();
+  }
 }
 
 function getCurrentContextSelection2() {
