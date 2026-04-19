@@ -181,22 +181,29 @@ try {
     $tableCheck = $conn->query("SHOW TABLES LIKE 'college_officials'");
     $hasOfficialTable = $tableCheck && $tableCheck->fetch(PDO::FETCH_ASSOC);
 
-    if ($hasOfficialTable) {
+    if ($hasOfficialTable && !$isRoomView) {
         $secRow = null;
 
         if ($isInstructorView && $selectedDepartmentId !== null && $selectedDepartmentId > 0) {
-            $secStmt = $conn->prepare("SELECT name, title FROM college_officials WHERE is_secretary = 1 AND department_id = :department_id ORDER BY id ASC LIMIT 1");
+            $secStmt = $conn->prepare("SELECT name, title FROM college_officials WHERE department_id = :department_id ORDER BY is_secretary DESC, id ASC LIMIT 1");
             $secStmt->bindValue(':department_id', $selectedDepartmentId, PDO::PARAM_INT);
             $secStmt->execute();
             $secRow = $secStmt->fetch(PDO::FETCH_ASSOC);
         }
 
-        if (!$secRow) {
+        if ($isClassView && !$secRow) {
             $secStmt = $conn->query("SELECT name, title FROM college_officials WHERE is_secretary = 1 ORDER BY id ASC LIMIT 1");
             $secRow = $secStmt ? $secStmt->fetch(PDO::FETCH_ASSOC) : null;
         }
 
-        if (!$secRow) {
+        if (!$secRow && $isInstructorView && $selectedDepartmentId !== null && $selectedDepartmentId > 0) {
+            $secStmt = $conn->prepare("SELECT name, title FROM college_officials WHERE is_dean = 0 AND department_id = :department_id ORDER BY id ASC LIMIT 1");
+            $secStmt->bindValue(':department_id', $selectedDepartmentId, PDO::PARAM_INT);
+            $secStmt->execute();
+            $secRow = $secStmt->fetch(PDO::FETCH_ASSOC);
+        }
+
+        if (!$secRow && $isClassView) {
             $secStmt = $conn->query("SELECT name, title FROM college_officials WHERE is_dean = 0 ORDER BY id ASC LIMIT 1");
             $secRow = $secStmt ? $secStmt->fetch(PDO::FETCH_ASSOC) : null;
         }
@@ -208,13 +215,15 @@ try {
             $preparedByRole = strtoupper((string)$secRow['title']);
         }
 
-        $deanStmt = $conn->query("SELECT name, title FROM college_officials WHERE is_dean = 1 ORDER BY id ASC LIMIT 1");
-        $deanRow = $deanStmt ? $deanStmt->fetch(PDO::FETCH_ASSOC) : null;
-        if (!empty($deanRow['name'])) {
-            $approvedByName = strtoupper((string)$deanRow['name']);
-        }
-        if (!empty($deanRow['title'])) {
-            $approvedByRole = strtoupper((string)$deanRow['title']);
+        if ($isClassView || $isInstructorView) {
+            $deanStmt = $conn->query("SELECT name, title FROM college_officials WHERE is_dean = 1 ORDER BY id ASC LIMIT 1");
+            $deanRow = $deanStmt ? $deanStmt->fetch(PDO::FETCH_ASSOC) : null;
+            if (!empty($deanRow['name'])) {
+                $approvedByName = strtoupper((string)$deanRow['name']);
+            }
+            if (!empty($deanRow['title'])) {
+                $approvedByRole = strtoupper((string)$deanRow['title']);
+            }
         }
     }
 } catch (Exception $e) {
@@ -552,7 +561,7 @@ foreach ($schedules as $sched) {
         .footer {
             display: flex;
             justify-content: space-between;
-            margin-top: 20px;
+            margin-top: 15px;
             font-size: 11px;
         }
 
@@ -581,6 +590,7 @@ foreach ($schedules as $sched) {
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.3px;
+            border-top: 1px solid #000;
         }
         
         @media print {
@@ -773,12 +783,12 @@ foreach ($schedules as $sched) {
         <div class="footer">
             <div class="signature-line">
                 <p>PREPARED BY:</p>
-                <div class="signature-name text-align-left"><?php echo htmlspecialchars($preparedByName !== '' ? $preparedByName : '____________________________________'); ?></div>
+                <div class="signature-name text-align-center"><?php echo htmlspecialchars($preparedByName !== '' ? $preparedByName : '____________________________________'); ?></div>
                 <div class="signature-role text-align-center"><?php echo htmlspecialchars($preparedByRole); ?></div>
             </div>
             <div class="signature-line">
                 <p>APPROVED BY:</p>
-                <div class="signature-name text-align-left"><?php echo htmlspecialchars($approvedByName !== '' ? $approvedByName : '____________________________________'); ?></div>
+                <div class="signature-name text-align-center"><?php echo htmlspecialchars($approvedByName !== '' ? $approvedByName : '____________________________________'); ?></div>
                 <div class="signature-role text-align-center"><?php echo htmlspecialchars($approvedByRole); ?></div>
             </div>
         </div>

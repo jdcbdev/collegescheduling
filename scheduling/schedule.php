@@ -23,9 +23,6 @@ $navBasePath = '../';
                     <h5 class="card-title mb-0 schedule-label">Class Schedule <span class="text-muted">| SY: --</span></h5>
                   </div>
                   <div class="schedule-header-controls d-flex align-items-center ms-auto gap-2">
-                    <button id="btnPrintSchedule" type="button" class="btn btn-outline-secondary" title="Print/Export Schedule">
-                      <i class="ti ti-printer"></i>
-                    </button>
                     <select id="scheduleType" class="form-select form-select w-auto">
                       <option value="class" selected>Class</option>
                       <option value="instructor">Instructor</option>
@@ -39,6 +36,9 @@ $navBasePath = '../';
                     </select>
                     <button id="btnSubjectProgress" type="button" class="btn btn-outline-primary btn-cancel-all d-none" title="View Subject Progress">
                       <i class="ti ti-checklist"></i>
+                    </button>
+                    <button id="btnPrintSchedule" type="button" class="btn btn-outline-secondary" title="Print/Export Schedule">
+                      <i class="ti ti-printer"></i>
                     </button>
                     <select id="instructorDropdown" class="form-select form-select w-auto d-none">
                       <option value="">Select Instructor</option>
