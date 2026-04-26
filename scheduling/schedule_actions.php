@@ -26,12 +26,25 @@ function ensureScheduleClassModeColumn(PDO $conn): void {
     }
 }
 
+function isOpenVenueRoom(PDO $conn, ?int $room_id): bool {
+    if ($room_id === null || $room_id <= 0) return false;
+    $stmt = $conn->prepare("SELECT room_name FROM rooms WHERE id = :id LIMIT 1");
+    $stmt->bindValue(':id', $room_id, PDO::PARAM_INT);
+    $stmt->execute();
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$row) return false;
+    $name = strtolower(trim($row['room_name']));
+    return $name === 'field' || $name === 'gym';
+}
+
 function findScheduleConflicts(PDO $conn, int $schoolyear_id, int $class_id, ?int $instructor_id, ?int $room_id, string $day_of_week, string $start_time, string $end_time, ?int $exclude_id = null): array {
+    $openVenue = isOpenVenueRoom($conn, $room_id);
+
     $conflictClauses = ["s.class_id = :class_id_conflict"];
     if ($instructor_id !== null && $instructor_id > 0) {
         $conflictClauses[] = "s.instructor_id = :instructor_id_conflict";
     }
-    if ($room_id !== null && $room_id > 0) {
+    if (!$openVenue && $room_id !== null && $room_id > 0) {
         $conflictClauses[] = "s.room_id = :room_id_conflict";
     }
 
@@ -63,7 +76,7 @@ function findScheduleConflicts(PDO $conn, int $schoolyear_id, int $class_id, ?in
     if ($instructor_id !== null && $instructor_id > 0) {
         $conflictStmt->bindValue(':instructor_id_conflict', $instructor_id, PDO::PARAM_INT);
     }
-    if ($room_id !== null && $room_id > 0) {
+    if (!$openVenue && $room_id !== null && $room_id > 0) {
         $conflictStmt->bindValue(':room_id_conflict', $room_id, PDO::PARAM_INT);
     }
     if ($exclude_id !== null && $exclude_id > 0) {

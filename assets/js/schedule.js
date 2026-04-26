@@ -1356,8 +1356,6 @@ function openAddScheduleModal(payload) {
     fillModalPrograms(selectedProgramId);
     fillModalClassSections(selectedProgramId, payload.contextId);
     classSelect.value = payload.contextId;
-    if (programSelect) programSelect.disabled = true;
-    classSelect.disabled = true;
   } else if (payload.contextType === 'instructor') {
     instructorSelect.value = payload.contextId;
     instructorSelect.disabled = true;
@@ -1431,11 +1429,11 @@ function openEditScheduleModal(scheduleId, panelRefresh) {
   populateSelectOptions(roomSelect, 'Optional Room', appState.rooms, 'id', rm => rm.room_name);
 
   if (programSelect) {
-    programSelect.disabled = false;
+    programSelect.disabled = true;
   }
 
   if (classSelect) {
-    classSelect.disabled = false;
+    classSelect.disabled = true;
     classSelect.value = schedule.class_id ? String(schedule.class_id) : '';
   }
   if (instructorSelect) {
