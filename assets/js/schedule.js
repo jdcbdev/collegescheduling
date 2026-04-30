@@ -1171,6 +1171,10 @@ function ensureAddScheduleModal() {
                 </select>
               </div>
               <div class="mb-2">
+                <label class="form-label mb-1">Class Size</label>
+                <input id="addScheduleClassSize" type="number" class="form-control" min="1" step="1" value="40" required>
+              </div>
+              <div class="mb-2">
                 <label class="form-label mb-1">Instructor</label>
                 <div class="position-relative">
                   <input id="addScheduleInstructorSearch" type="text" autocomplete="off" class="form-control mb-1" placeholder="Type to search instructor...">
@@ -1311,6 +1315,10 @@ function openAddScheduleModal(payload) {
   setModalDaySelection([dayName]);
   getEl('addScheduleStartTime').value = minutesToTimeString(payload.startMinutes);
   getEl('addScheduleEndTime').value = minutesToTimeString(payload.endMinutes);
+  const classSizeInput = getEl('addScheduleClassSize');
+  if (classSizeInput) {
+    classSizeInput.value = '40';
+  }
 
   const modalEl = getEl('addScheduleModal');
   if (modalEl) {
@@ -1421,6 +1429,10 @@ function openEditScheduleModal(scheduleId, panelRefresh) {
   setModalDaySelection([schedule.day_of_week || '']);
   getEl('addScheduleStartTime').value = String(schedule.start_time || '').slice(0, 5);
   getEl('addScheduleEndTime').value = String(schedule.end_time || '').slice(0, 5);
+  const classSizeInput = getEl('addScheduleClassSize');
+  if (classSizeInput) {
+    classSizeInput.value = String(schedule.class_size || 40);
+  }
 
   const selectedProgramId = getProgramIdByClass(schedule.class_id);
   fillModalPrograms(selectedProgramId);
@@ -1487,6 +1499,8 @@ function saveScheduleFromModal() {
   const classMode = getEl('addScheduleClassMode').value;
   const startTime = getEl('addScheduleStartTime').value;
   const endTime = getEl('addScheduleEndTime').value;
+  const classSizeRaw = getEl('addScheduleClassSize').value;
+  const classSize = Number(classSizeRaw || 40);
 
   if (!classId) {
     setModalAlert('Class section is required.');
@@ -1510,6 +1524,10 @@ function saveScheduleFromModal() {
   }
   if (startTime >= endTime) {
     setModalAlert('End time must be later than start time.');
+    return;
+  }
+  if (!Number.isInteger(classSize) || classSize <= 0) {
+    setModalAlert('Class size must be a whole number greater than 0.');
     return;
   }
 
@@ -1540,6 +1558,7 @@ function saveScheduleFromModal() {
   payload.set('room_id', roomId || '');
   payload.set('start_time', startTime);
   payload.set('end_time', endTime);
+  payload.set('class_size', String(classSize));
 
   if (mode === 'edit') {
     payload.set('day_of_week', days[0]);

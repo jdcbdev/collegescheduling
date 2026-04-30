@@ -26,6 +26,14 @@ function ensureScheduleClassModeColumn(PDO $conn): void {
     }
 }
 
+function ensureScheduleClassSizeColumn(PDO $conn): void {
+    $columnStmt = $conn->query("SHOW COLUMNS FROM schedules LIKE 'class_size'");
+    $columnExists = $columnStmt->fetch(PDO::FETCH_ASSOC);
+    if (!$columnExists) {
+        $conn->exec("ALTER TABLE schedules ADD COLUMN class_size INT(11) NOT NULL DEFAULT 40 AFTER end_time");
+    }
+}
+
 function isOpenVenueRoom(PDO $conn, ?int $room_id): bool {
     if ($room_id === null || $room_id <= 0) return false;
     $stmt = $conn->prepare("SELECT room_name FROM rooms WHERE id = :id LIMIT 1");
@@ -113,6 +121,7 @@ try {
 
         $conn = $db->connect();
         ensureScheduleClassModeColumn($conn);
+        ensureScheduleClassSizeColumn($conn);
 
         if ($schoolyear_id <= 0) {
             $schoolyear_id = getActiveSchoolYearId($conn);
@@ -139,6 +148,7 @@ try {
                     s.class_mode,
                     s.instructor_id,
                     s.room_id,
+                    s.class_size,
                     sub.subject_code,
                     sub.subject_name,
                     c.section_name AS class_section,
@@ -166,6 +176,7 @@ try {
     if ($action === 'addSchedule') {
         $conn = $db->connect();
         ensureScheduleClassModeColumn($conn);
+        ensureScheduleClassSizeColumn($conn);
 
         $schoolyear_id = (int)($_POST['schoolyear_id'] ?? 0);
         $class_id = (int)($_POST['class_id'] ?? 0);
@@ -176,10 +187,16 @@ try {
         $day_of_week = trim((string)($_POST['day_of_week'] ?? ''));
         $start_time = trim((string)($_POST['start_time'] ?? ''));
         $end_time = trim((string)($_POST['end_time'] ?? ''));
+        $class_size_raw = $_POST['class_size'] ?? 40;
 
         $subject_id = ($subject_id_raw === null || $subject_id_raw === '') ? null : (int)$subject_id_raw;
         $instructor_id = ($instructor_id_raw === null || $instructor_id_raw === '') ? null : (int)$instructor_id_raw;
         $room_id = ($room_id_raw === null || $room_id_raw === '') ? null : (int)$room_id_raw;
+        $class_size = (int)$class_size_raw;
+
+        if ($class_size <= 0) {
+            $class_size = 40;
+        }
 
         if ($schoolyear_id <= 0) {
             $schoolyear_id = getActiveSchoolYearId($conn);
@@ -226,9 +243,9 @@ try {
         }
 
         $insertSql = "INSERT INTO schedules
-                                                (schoolyear_id, class_id, subject_id, class_mode, instructor_id, room_id, day_of_week, start_time, end_time)
+                                                (schoolyear_id, class_id, subject_id, class_mode, instructor_id, room_id, day_of_week, start_time, end_time, class_size)
                       VALUES
-                                                (:schoolyear_id, :class_id, :subject_id, :class_mode, :instructor_id, :room_id, :day_of_week, :start_time, :end_time)";
+                                                (:schoolyear_id, :class_id, :subject_id, :class_mode, :instructor_id, :room_id, :day_of_week, :start_time, :end_time, :class_size)";
         $insertStmt = $conn->prepare($insertSql);
         $insertStmt->bindValue(':schoolyear_id', $schoolyear_id, PDO::PARAM_INT);
         $insertStmt->bindValue(':class_id', $class_id, PDO::PARAM_INT);
@@ -239,6 +256,7 @@ try {
         $insertStmt->bindValue(':day_of_week', $day_of_week, PDO::PARAM_STR);
         $insertStmt->bindValue(':start_time', $start_time, PDO::PARAM_STR);
         $insertStmt->bindValue(':end_time', $end_time, PDO::PARAM_STR);
+        $insertStmt->bindValue(':class_size', $class_size, PDO::PARAM_INT);
         $insertStmt->execute();
 
         echo json_encode(['success' => true, 'id' => (int)$conn->lastInsertId()]);
@@ -247,6 +265,7 @@ try {
     if ($action === 'updateSchedule') {
         $conn = $db->connect();
         ensureScheduleClassModeColumn($conn);
+        ensureScheduleClassSizeColumn($conn);
 
         $id = (int)($_POST['id'] ?? 0);
         $schoolyear_id = (int)($_POST['schoolyear_id'] ?? 0);
@@ -258,10 +277,16 @@ try {
         $day_of_week = trim((string)($_POST['day_of_week'] ?? ''));
         $start_time = trim((string)($_POST['start_time'] ?? ''));
         $end_time = trim((string)($_POST['end_time'] ?? ''));
+        $class_size_raw = $_POST['class_size'] ?? 40;
 
         $subject_id = ($subject_id_raw === null || $subject_id_raw === '') ? null : (int)$subject_id_raw;
         $instructor_id = ($instructor_id_raw === null || $instructor_id_raw === '') ? null : (int)$instructor_id_raw;
         $room_id = ($room_id_raw === null || $room_id_raw === '') ? null : (int)$room_id_raw;
+        $class_size = (int)$class_size_raw;
+
+        if ($class_size <= 0) {
+            $class_size = 40;
+        }
 
         if ($id <= 0 || $class_id <= 0 || $subject_id === null || $day_of_week === '' || $start_time === '' || $end_time === '') {
             echo json_encode(['success' => false, 'message' => 'Missing required fields']);
@@ -321,7 +346,8 @@ try {
                           room_id = :room_id,
                           day_of_week = :day_of_week,
                           start_time = :start_time,
-                          end_time = :end_time
+                          end_time = :end_time,
+                          class_size = :class_size
                       WHERE id = :id AND schoolyear_id = :schoolyear_id";
         $updateStmt = $conn->prepare($updateSql);
         $updateStmt->bindValue(':id', $id, PDO::PARAM_INT);
@@ -334,6 +360,7 @@ try {
         $updateStmt->bindValue(':day_of_week', $day_of_week, PDO::PARAM_STR);
         $updateStmt->bindValue(':start_time', $start_time, PDO::PARAM_STR);
         $updateStmt->bindValue(':end_time', $end_time, PDO::PARAM_STR);
+        $updateStmt->bindValue(':class_size', $class_size, PDO::PARAM_INT);
         $updateStmt->execute();
 
         echo json_encode(['success' => true]);

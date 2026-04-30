@@ -256,6 +256,7 @@ CREATE TABLE `schedules` (
   `day_of_week` varchar(20) DEFAULT NULL,
   `start_time` time DEFAULT NULL,
   `end_time` time DEFAULT NULL,
+  `class_size` int(11) NOT NULL DEFAULT 40,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
