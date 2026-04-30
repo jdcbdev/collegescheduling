@@ -10,12 +10,13 @@ class CollegeOfficial extends Database {
     public $department_id;
     public $is_dean;
     public $is_secretary;
+    public $is_vpaa;
 
     public function addOfficial() {
         $conn = $this->connect();
 
-        $sql = "INSERT INTO college_officials (name, title, department_id, is_dean, is_secretary)
-            VALUES (:name, :title, :department_id, :is_dean, :is_secretary)";
+        $sql = "INSERT INTO college_officials (name, title, department_id, is_dean, is_secretary, is_vpaa)
+            VALUES (:name, :title, :department_id, :is_dean, :is_secretary, :is_vpaa)";
 
         $query = $conn->prepare($sql);
         $query->bindParam(':name', $this->name, PDO::PARAM_STR);
@@ -29,6 +30,7 @@ class CollegeOfficial extends Database {
 
         $query->bindValue(':is_dean', (int)$this->is_dean, PDO::PARAM_INT);
         $query->bindValue(':is_secretary', (int)$this->is_secretary, PDO::PARAM_INT);
+        $query->bindValue(':is_vpaa', (int)$this->is_vpaa, PDO::PARAM_INT);
 
         if ($query->execute()) {
             return $conn->lastInsertId();
@@ -46,6 +48,7 @@ class CollegeOfficial extends Database {
                        co.department_id,
                        co.is_dean,
                        co.is_secretary,
+                       co.is_vpaa,
                        co.created_at,
                        d.department_name
                 FROM college_officials co
@@ -69,6 +72,7 @@ class CollegeOfficial extends Database {
                        co.department_id,
                        co.is_dean,
                        co.is_secretary,
+                       co.is_vpaa,
                        co.created_at,
                        d.department_name
                 FROM college_officials co
@@ -102,6 +106,27 @@ class CollegeOfficial extends Database {
         return !empty($row['total']);
     }
 
+    public function hasVPAA($excludeId = null) {
+        $conn = $this->connect();
+
+        $sql = "SELECT COUNT(*) AS total
+                FROM college_officials
+                WHERE is_vpaa = 1";
+
+        if ($excludeId !== null) {
+            $sql .= " AND id <> :exclude_id";
+        }
+
+        $query = $conn->prepare($sql);
+        if ($excludeId !== null) {
+            $query->bindValue(':exclude_id', (int)$excludeId, PDO::PARAM_INT);
+        }
+        $query->execute();
+
+        $row = $query->fetch(PDO::FETCH_ASSOC);
+        return !empty($row['total']);
+    }
+
     public function updateOfficial() {
         $conn = $this->connect();
 
@@ -110,7 +135,8 @@ class CollegeOfficial extends Database {
                     title = :title,
                     department_id = :department_id,
                     is_dean = :is_dean,
-                    is_secretary = :is_secretary
+                    is_secretary = :is_secretary,
+                    is_vpaa = :is_vpaa
                 WHERE id = :id";
 
         $query = $conn->prepare($sql);
@@ -126,6 +152,7 @@ class CollegeOfficial extends Database {
 
         $query->bindValue(':is_dean', (int)$this->is_dean, PDO::PARAM_INT);
         $query->bindValue(':is_secretary', (int)$this->is_secretary, PDO::PARAM_INT);
+        $query->bindValue(':is_vpaa', (int)$this->is_vpaa, PDO::PARAM_INT);
 
         return $query->execute();
     }

@@ -88,6 +88,7 @@ CREATE TABLE `college_officials` (
   `department_id` int(11) DEFAULT NULL,
   `is_dean` tinyint(1) NOT NULL DEFAULT 0,
   `is_secretary` tinyint(1) NOT NULL DEFAULT 0,
+  `is_vpaa` tinyint(1) NOT NULL DEFAULT 0,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -95,13 +96,13 @@ CREATE TABLE `college_officials` (
 -- Dumping data for table `college_officials`
 --
 
-INSERT INTO `college_officials` (`id`, `name`, `title`, `department_id`, `is_dean`, `is_secretary`, `created_at`) VALUES
-(1, 'Jaydee C. Ballaho, MIT', 'Head, Computer Science Department', 1, 0, 0, '2026-04-19 11:30:52'),
-(2, 'Jason A. Catadman, MIT', 'Head, Information Technology Department', 2, 0, 0, '2026-04-19 11:31:29'),
-(3, 'Lucy F. Felix-Sadiwa, MSCS', 'Head, MIT Department', 4, 0, 0, '2026-04-19 11:31:58'),
-(4, 'Ceed Jezreel B. Lorenzo, MIT', 'Head, ACT Department', 3, 0, 0, '2026-04-19 11:32:20'),
-(5, 'Mark L. Flores, PhD', 'Dean, College of Computing Studies', NULL, 1, 0, '2026-04-19 11:32:48'),
-(6, 'Jaydee C. Ballaho, MIT', 'College Secretary', NULL, 0, 1, '2026-04-19 12:34:58');
+INSERT INTO `college_officials` (`id`, `name`, `title`, `department_id`, `is_dean`, `is_secretary`, `is_vpaa`, `created_at`) VALUES
+(1, 'Jaydee C. Ballaho, MIT', 'Head, Computer Science Department', 1, 0, 0, 0, '2026-04-19 11:30:52'),
+(2, 'Jason A. Catadman, MIT', 'Head, Information Technology Department', 2, 0, 0, 0, '2026-04-19 11:31:29'),
+(3, 'Lucy F. Felix-Sadiwa, MSCS', 'Head, MIT Department', 4, 0, 0, 0, '2026-04-19 11:31:58'),
+(4, 'Ceed Jezreel B. Lorenzo, MIT', 'Head, ACT Department', 3, 0, 0, 0, '2026-04-19 11:32:20'),
+(5, 'Mark L. Flores, PhD', 'Dean, College of Computing Studies', NULL, 1, 0, 0, '2026-04-19 11:32:48'),
+(6, 'Jaydee C. Ballaho, MIT', 'College Secretary', NULL, 0, 1, 0, '2026-04-19 12:34:58');
 
 -- --------------------------------------------------------
 

@@ -6,6 +6,15 @@ require_once __DIR__ . '/../classes/CollegeOfficial.php';
 $action = isset($_REQUEST['action']) ? trim($_REQUEST['action']) : 'list';
 $official = new CollegeOfficial();
 
+function ensureVpaaColumn(CollegeOfficial $official): void {
+    $conn = $official->connect();
+    $stmt = $conn->query("SHOW COLUMNS FROM college_officials LIKE 'is_vpaa'");
+    $exists = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$exists) {
+        $conn->exec("ALTER TABLE college_officials ADD COLUMN is_vpaa TINYINT(1) NOT NULL DEFAULT 0 AFTER is_secretary");
+    }
+}
+
 function jsonResponse($success, $data = null, $message = '') {
     echo json_encode(array_filter([
         'success' => $success,
@@ -18,6 +27,8 @@ function jsonResponse($success, $data = null, $message = '') {
 }
 
 try {
+    ensureVpaaColumn($official);
+
     switch ($action) {
         case 'list':
             jsonResponse(true, $official->getAllOfficials());
@@ -42,6 +53,7 @@ try {
             $title = isset($_POST['title']) ? trim($_POST['title']) : '';
             $isDean = isset($_POST['is_dean']) ? (int)$_POST['is_dean'] : 0;
             $isSecretary = isset($_POST['is_secretary']) ? (int)$_POST['is_secretary'] : 0;
+            $isVpaa = isset($_POST['is_vpaa']) ? (int)$_POST['is_vpaa'] : 0;
             $departmentIdRaw = $_POST['department_id'] ?? '';
             $departmentId = ($departmentIdRaw === '' || $departmentIdRaw === null) ? null : (int)$departmentIdRaw;
 
@@ -57,13 +69,24 @@ try {
                 jsonResponse(false, null, 'Invalid secretary flag value.');
             }
 
+            if ($isVpaa !== 0 && $isVpaa !== 1) {
+                jsonResponse(false, null, 'Invalid VPAA flag value.');
+            }
+
+            if ($isVpaa === 1) {
+                $departmentId = null;
+                if ($official->hasVPAA()) {
+                    jsonResponse(false, null, 'A Vice President for Academic Affairs record already exists.');
+                }
+            }
+
             if ($isDean === 1) {
                 $departmentId = null;
                 if ($official->hasDean()) {
                     jsonResponse(false, null, 'A dean record already exists.');
                 }
-            } elseif ($isSecretary !== 1 && ($departmentId === null || $departmentId <= 0)) {
-                jsonResponse(false, null, 'Please select a department unless official is marked as dean or secretary.');
+            } elseif ($isSecretary !== 1 && $isVpaa !== 1 && ($departmentId === null || $departmentId <= 0)) {
+                jsonResponse(false, null, 'Please select a department unless official is marked as dean, secretary, or VPAA.');
             }
 
             $official->name = $name;
@@ -71,6 +94,7 @@ try {
             $official->department_id = $departmentId;
             $official->is_dean = $isDean;
             $official->is_secretary = $isSecretary;
+            $official->is_vpaa = $isVpaa;
 
             if ($official->addOfficial()) {
                 jsonResponse(true, null, 'College official added successfully.');
@@ -85,6 +109,7 @@ try {
             $title = isset($_POST['title']) ? trim($_POST['title']) : '';
             $isDean = isset($_POST['is_dean']) ? (int)$_POST['is_dean'] : 0;
             $isSecretary = isset($_POST['is_secretary']) ? (int)$_POST['is_secretary'] : 0;
+            $isVpaa = isset($_POST['is_vpaa']) ? (int)$_POST['is_vpaa'] : 0;
             $departmentIdRaw = $_POST['department_id'] ?? '';
             $departmentId = ($departmentIdRaw === '' || $departmentIdRaw === null) ? null : (int)$departmentIdRaw;
 
@@ -100,13 +125,24 @@ try {
                 jsonResponse(false, null, 'Invalid secretary flag value.');
             }
 
+            if ($isVpaa !== 0 && $isVpaa !== 1) {
+                jsonResponse(false, null, 'Invalid VPAA flag value.');
+            }
+
+            if ($isVpaa === 1) {
+                $departmentId = null;
+                if ($official->hasVPAA($id)) {
+                    jsonResponse(false, null, 'A Vice President for Academic Affairs record already exists.');
+                }
+            }
+
             if ($isDean === 1) {
                 $departmentId = null;
                 if ($official->hasDean($id)) {
                     jsonResponse(false, null, 'A dean record already exists.');
                 }
-            } elseif ($isSecretary !== 1 && ($departmentId === null || $departmentId <= 0)) {
-                jsonResponse(false, null, 'Please select a department unless official is marked as dean or secretary.');
+            } elseif ($isSecretary !== 1 && $isVpaa !== 1 && ($departmentId === null || $departmentId <= 0)) {
+                jsonResponse(false, null, 'Please select a department unless official is marked as dean, secretary, or VPAA.');
             }
 
             $official->id = $id;
@@ -115,6 +151,7 @@ try {
             $official->department_id = $departmentId;
             $official->is_dean = $isDean;
             $official->is_secretary = $isSecretary;
+            $official->is_vpaa = $isVpaa;
 
             if ($official->updateOfficial()) {
                 jsonResponse(true, null, 'College official updated successfully.');
