@@ -51,8 +51,10 @@ $leftLogoPath = '../assets/images/logos/image 2.png';
 $rightLogoPath = '../assets/images/logos/image 1.png';
 $preparedByName = '';
 $preparedByRole = 'COLLEGE SECRETARY';
+$recommendingByName = '';
+$recommendingByRole = 'DEAN, COLLEGE OF COMPUTING STUDIES';
 $approvedByName = '';
-$approvedByRole = 'DEAN, COLLEGE OF COMPUTING STUDIES';
+$approvedByRole = 'VICE PRESIDENT FOR ACADEMIC AFFAIRS';
 
 function timeToMinutes(string $timeValue): int {
     $parts = explode(':', substr($timeValue, 0, 5));
@@ -214,7 +216,7 @@ try {
         }
 
         if (!empty($secRow['name'])) {
-            $preparedByName = strtoupper((string)$secRow['name']);
+            $preparedByName = (string)$secRow['name'];
         }
         if (!empty($secRow['title'])) {
             $preparedByRole = strtoupper((string)$secRow['title']);
@@ -224,10 +226,19 @@ try {
             $deanStmt = $conn->query("SELECT name, title FROM college_officials WHERE is_dean = 1 ORDER BY id ASC LIMIT 1");
             $deanRow = $deanStmt ? $deanStmt->fetch(PDO::FETCH_ASSOC) : null;
             if (!empty($deanRow['name'])) {
-                $approvedByName = strtoupper((string)$deanRow['name']);
+                $recommendingByName = (string)$deanRow['name'];
             }
             if (!empty($deanRow['title'])) {
-                $approvedByRole = strtoupper((string)$deanRow['title']);
+                $recommendingByRole = strtoupper((string)$deanRow['title']);
+            }
+
+            $vpaaStmt = $conn->query("SELECT name, title FROM college_officials WHERE is_vpaa = 1 ORDER BY id ASC LIMIT 1");
+            $vpaaRow = $vpaaStmt ? $vpaaStmt->fetch(PDO::FETCH_ASSOC) : null;
+            if (!empty($vpaaRow['name'])) {
+                $approvedByName = (string)$vpaaRow['name'];
+            }
+            if (!empty($vpaaRow['title'])) {
+                $approvedByRole = strtoupper((string)$vpaaRow['title']);
             }
         }
     }
@@ -586,7 +597,6 @@ foreach ($schedules as $sched) {
             margin-top: 20px;
             font-weight: bold;
             letter-spacing: 0.3px;
-            text-transform: uppercase;
         }
 
         .signature-role {
@@ -1010,6 +1020,11 @@ foreach ($schedules as $sched) {
                 <p>PREPARED BY:</p>
                 <div class="signature-name text-align-center"><?php echo htmlspecialchars($preparedByName !== '' ? $preparedByName : '____________________________________'); ?></div>
                 <div class="signature-role text-align-center"><?php echo htmlspecialchars($preparedByRole); ?></div>
+            </div>
+            <div class="signature-line">
+                <p>RECOMMENDING APPROVAL:</p>
+                <div class="signature-name text-align-center"><?php echo htmlspecialchars($recommendingByName !== '' ? $recommendingByName : '____________________________________'); ?></div>
+                <div class="signature-role text-align-center"><?php echo htmlspecialchars($recommendingByRole); ?></div>
             </div>
             <div class="signature-line">
                 <p>APPROVED BY:</p>
