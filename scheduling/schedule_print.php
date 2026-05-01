@@ -860,12 +860,12 @@ foreach ($schedules as $sched) {
                     <th>DESCRIPTION</th>
                     <th style="width:6%;">LEC</th>
                     <th style="width:6%;">LAB</th>
-                    <th style="width:12%;">DAYS</th>
-                    <th style="width:11%;">ROOM</th>
-                    <th style="width:10%;">START TIME</th>
-                    <th style="width:10%;">END TIME</th>
-                    <th style="width:7%;">SIZE</th>
-                    <th style="width:10%;">REMARKS</th>
+                    <th style="width:8%;">DAYS</th>
+                    <th style="width:8%;">ROOM</th>
+                    <th style="width:8%;">START TIME</th>
+                    <th style="width:8%;">END TIME</th>
+                    <th style="width:6%;">SIZE</th>
+                    <th>REMARKS</th>
                 </tr>
             </thead>
             <tbody>
