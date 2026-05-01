@@ -225,20 +225,32 @@ try {
         if ($isClassView || $isInstructorView) {
             $deanStmt = $conn->query("SELECT name, title FROM college_officials WHERE is_dean = 1 ORDER BY id ASC LIMIT 1");
             $deanRow = $deanStmt ? $deanStmt->fetch(PDO::FETCH_ASSOC) : null;
-            if (!empty($deanRow['name'])) {
-                $recommendingByName = (string)$deanRow['name'];
-            }
-            if (!empty($deanRow['title'])) {
-                $recommendingByRole = strtoupper((string)$deanRow['title']);
-            }
 
-            $vpaaStmt = $conn->query("SELECT name, title FROM college_officials WHERE is_vpaa = 1 ORDER BY id ASC LIMIT 1");
-            $vpaaRow = $vpaaStmt ? $vpaaStmt->fetch(PDO::FETCH_ASSOC) : null;
-            if (!empty($vpaaRow['name'])) {
-                $approvedByName = (string)$vpaaRow['name'];
-            }
-            if (!empty($vpaaRow['title'])) {
-                $approvedByRole = strtoupper((string)$vpaaRow['title']);
+            if ($isInstructorView) {
+                // Instructor view: Dean is the approver; no recommending block
+                if (!empty($deanRow['name'])) {
+                    $approvedByName = (string)$deanRow['name'];
+                }
+                if (!empty($deanRow['title'])) {
+                    $approvedByRole = strtoupper((string)$deanRow['title']);
+                }
+            } else {
+                // Class view: Dean recommends, VPAA approves
+                if (!empty($deanRow['name'])) {
+                    $recommendingByName = (string)$deanRow['name'];
+                }
+                if (!empty($deanRow['title'])) {
+                    $recommendingByRole = strtoupper((string)$deanRow['title']);
+                }
+
+                $vpaaStmt = $conn->query("SELECT name, title FROM college_officials WHERE is_vpaa = 1 ORDER BY id ASC LIMIT 1");
+                $vpaaRow = $vpaaStmt ? $vpaaStmt->fetch(PDO::FETCH_ASSOC) : null;
+                if (!empty($vpaaRow['name'])) {
+                    $approvedByName = (string)$vpaaRow['name'];
+                }
+                if (!empty($vpaaRow['title'])) {
+                    $approvedByRole = strtoupper((string)$vpaaRow['title']);
+                }
             }
         }
     }
@@ -1014,18 +1026,20 @@ foreach ($schedules as $sched) {
         </table>
         <?php endif; ?>
         
-        <?php if (!$isRoomView): ?>
+        <?php if (!$isRoomView && !($isClassView && $layout === 'grid')): ?>
         <div class="footer">
             <div class="signature-line">
                 <p>PREPARED BY:</p>
                 <div class="signature-name text-align-center"><?php echo htmlspecialchars($preparedByName !== '' ? $preparedByName : '____________________________________'); ?></div>
                 <div class="signature-role text-align-center"><?php echo htmlspecialchars($preparedByRole); ?></div>
             </div>
+            <?php if (!$isInstructorView): ?>
             <div class="signature-line">
                 <p>RECOMMENDING APPROVAL:</p>
                 <div class="signature-name text-align-center"><?php echo htmlspecialchars($recommendingByName !== '' ? $recommendingByName : '____________________________________'); ?></div>
                 <div class="signature-role text-align-center"><?php echo htmlspecialchars($recommendingByRole); ?></div>
             </div>
+            <?php endif; ?>
             <div class="signature-line">
                 <p>APPROVED BY:</p>
                 <div class="signature-name text-align-center"><?php echo htmlspecialchars($approvedByName !== '' ? $approvedByName : '____________________________________'); ?></div>
