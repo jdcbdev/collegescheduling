@@ -962,7 +962,7 @@ foreach ($schedules as $sched) {
                 ?>
                 <tr>
                     <td><?php echo htmlspecialchars((string)($row['subject_code'] ?? '')); ?></td>
-                    <td class="subject-name-col" style="white-space:nowrap;"><?php echo htmlspecialchars($description); ?></td>
+                    <td class="subject-name-col" style="white-space:nowrap; text-transform: uppercase;"><?php echo htmlspecialchars($description); ?></td>
                     <td><?php echo htmlspecialchars($lecDisplay); ?></td>
                     <td><?php echo htmlspecialchars($labDisplay); ?></td>
                     <td><?php echo htmlspecialchars(implode(' ', $abbrDays)); ?></td>
@@ -970,7 +970,7 @@ foreach ($schedules as $sched) {
                     <td><?php echo htmlspecialchars($startLabel); ?></td>
                     <td><?php echo htmlspecialchars($endLabel); ?></td>
                     <td><?php echo htmlspecialchars(($isInstructorView || $isRoomView) ? (string)($row['class_section'] ?? '') : (string)($row['class_size'] ?? '')); ?></td>
-                    <td style="white-space:nowrap; text-align: left;"><?php echo htmlspecialchars($remarksValue); ?></td>
+                    <td style="white-space:nowrap; text-align: left; text-transform: uppercase;"><?php echo htmlspecialchars($remarksValue); ?></td>
                 </tr>
                 <?php endforeach; ?>
                 <?php endif; ?>
