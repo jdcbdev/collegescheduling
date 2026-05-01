@@ -159,7 +159,7 @@ class SchoolClass extends Database {
     }
 
     public function generateSectionName($program_code, $year_level, $section_letter) {
-        return $program_code . $year_level . $section_letter;
+        return $program_code . ' ' . $year_level . $section_letter;
     }
 
     public function deleteSection($id) {

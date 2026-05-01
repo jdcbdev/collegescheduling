@@ -446,7 +446,7 @@ $navBasePath = '../';
       const yearLevel = document.getElementById('hiddenYearLevel').value;
       
       if (letter && yearLevel) {
-        const preview = currentProgramCode + yearLevel + letter;
+        const preview = currentProgramCode + ' ' + yearLevel + letter;
         document.getElementById('sectionNamePreview').textContent = preview;
       } else {
         document.getElementById('sectionNamePreview').textContent = '-';
