@@ -28,6 +28,7 @@ const appState = {
   activeSchoolYearId: 0,
   subjectsByClass: {},
   allSubjects: [],
+  modalClassSchedulesById: {},
   currentSchedulesById: {},
   modalSelectOptionsCache: {}
 };
@@ -1004,6 +1005,28 @@ function loadClassSections(programId) {
     });
 }
 
+function loadModalClassSchedules(classId) {
+  if (!classId) {
+    appState.modalClassSchedulesById = {};
+    return Promise.resolve();
+  }
+  return fetch(`schedule_actions.php?action=getSchedule&type=class&id=${encodeURIComponent(classId)}`)
+    .then(r => r.json())
+    .then(data => {
+      appState.modalClassSchedulesById = {};
+      if (data && data.success && Array.isArray(data.data)) {
+        data.data.forEach(item => {
+          if (item && item.id) {
+            appState.modalClassSchedulesById[Number(item.id)] = item;
+          }
+        });
+      }
+    })
+    .catch(() => {
+      appState.modalClassSchedulesById = {};
+    });
+}
+
 function loadSubjectsByClass(classId) {
   if (!classId) {
     return Promise.resolve([]);
@@ -1125,9 +1148,10 @@ function calculateRequiredHours(subject, classMode, semester) {
   return hours;
 }
 
-function calculateScheduledHours(subjectCode, classMode) {
+function calculateScheduledHours(subjectCode, classMode, schedulesMap) {
+  const map = schedulesMap || appState.currentSchedulesById;
   let totalMinutes = 0;
-  Object.values(appState.currentSchedulesById).forEach(schedule => {
+  Object.values(map).forEach(schedule => {
     if (String(schedule.subject_code || '') === String(subjectCode) && String(schedule.class_mode || '') === String(classMode)) {
       const start = timeStringToMinutes(schedule.start_time);
       const end = timeStringToMinutes(schedule.end_time);
@@ -1164,7 +1188,7 @@ function updateRequiredHours() {
   const semesterMatch = appState.activeSchoolYearText.match(/(1st Sem|2nd Sem|Summer)/);
   const semester = semesterMatch ? semesterMatch[1] : '1st Sem';
   const requiredHours = calculateRequiredHours(subject, classMode, semester);
-  const scheduledHours = calculateScheduledHours(subject.subject_code, classMode);
+  const scheduledHours = calculateScheduledHours(subject.subject_code, classMode, appState.modalClassSchedulesById);
   const remainingHours = Math.max(0, requiredHours - scheduledHours);
   hoursDisplay.innerHTML = `<small class="text-muted">Required: ${requiredHours}h | Scheduled: ${scheduledHours}h | Remaining: ${remainingHours}h</small>`;
 }
@@ -1341,7 +1365,10 @@ function ensureAddScheduleModal() {
       if (programSelect && programId) {
         programSelect.value = programId;
       }
-      loadSubjectsByClass(this.value).then(subjects => {
+      Promise.all([
+        loadSubjectsByClass(this.value),
+        loadModalClassSchedules(this.value)
+      ]).then(([subjects]) => {
         populateSelectOptions(getEl('addScheduleSubject'), 'Select Subject', subjects, 'id', s => `${s.subject_code} - ${s.subject_name}`);
         updateClassModeBySubject(getEl('addScheduleSubject') ? getEl('addScheduleSubject').value : '');
         updateRequiredHours();
@@ -1504,7 +1531,10 @@ function openAddScheduleModal(payload) {
 
   const selectedClassId = classSelect.value;
   if (selectedClassId) {
-    loadSubjectsByClass(selectedClassId).then(subjects => {
+    Promise.all([
+      loadSubjectsByClass(selectedClassId),
+      loadModalClassSchedules(selectedClassId)
+    ]).then(([subjects]) => {
       populateSelectOptions(getEl('addScheduleSubject'), 'Select Subject', subjects, 'id', s => `${s.subject_code} - ${s.subject_name}`);
       updateClassModeBySubject(getEl('addScheduleSubject') ? getEl('addScheduleSubject').value : '');
       updateRequiredHours();
@@ -1611,7 +1641,10 @@ function openEditScheduleModal(scheduleId, panelRefresh) {
     }
     syncModalSearchableInputs();
   } else {
-    loadSubjectsByClass(selectedClassId).then(subjects => {
+    Promise.all([
+      loadSubjectsByClass(selectedClassId),
+      loadModalClassSchedules(selectedClassId)
+    ]).then(([subjects]) => {
       populateSelectOptions(subjectSelect, 'Select Subject', subjects, 'id', s => `${s.subject_code} - ${s.subject_name}`);
       if (subjectSelect) {
         const matched = subjects.find(s => String(s.subject_code || '') === String(schedule.subject_code || ''));
