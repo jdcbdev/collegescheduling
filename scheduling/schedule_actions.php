@@ -34,6 +34,121 @@ function ensureScheduleClassSizeColumn(PDO $conn): void {
     }
 }
 
+function getFallbackCurriculumId(PDO $conn): int {
+    $stmt = $conn->query("SELECT id FROM curriculum ORDER BY id ASC LIMIT 1");
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    return $row ? (int)$row['id'] : 0;
+}
+
+function ensureServiceNullableColumns(PDO $conn): void {
+    try {
+        $conn->exec("ALTER TABLE class MODIFY curriculum_id INT(11) DEFAULT NULL");
+        $conn->exec("ALTER TABLE class MODIFY year_level INT(11) DEFAULT NULL");
+    } catch (\Exception $e) {
+        // Already nullable; ignore
+    }
+    try {
+        $conn->exec("ALTER TABLE subjects MODIFY year_level INT(11) DEFAULT NULL");
+        $conn->exec("ALTER TABLE subjects MODIFY semester INT(11) DEFAULT NULL");
+    } catch (\Exception $e) {
+        // Already nullable; ignore
+    }
+}
+
+function findOrCreateServiceClassId(PDO $conn, int $schoolyear_id, string $sectionName): int {
+    $sectionName = trim($sectionName);
+    if ($sectionName === '') {
+        return 0;
+    }
+
+    $findStmt = $conn->prepare("SELECT id FROM class WHERE schoolyear_id = :schoolyear_id AND LOWER(section_name) = LOWER(:section_name) LIMIT 1");
+    $findStmt->bindValue(':schoolyear_id', $schoolyear_id, PDO::PARAM_INT);
+    $findStmt->bindValue(':section_name', $sectionName, PDO::PARAM_STR);
+    $findStmt->execute();
+    $found = $findStmt->fetch(PDO::FETCH_ASSOC);
+    if ($found) {
+        return (int)$found['id'];
+    }
+
+    ensureServiceNullableColumns($conn);
+
+    $insertStmt = $conn->prepare("INSERT INTO class (schoolyear_id, curriculum_id, section_name, year_level) VALUES (:schoolyear_id, NULL, :section_name, NULL)");
+    $insertStmt->bindValue(':schoolyear_id', $schoolyear_id, PDO::PARAM_INT);
+    $insertStmt->bindValue(':section_name', substr($sectionName, 0, 50), PDO::PARAM_STR);
+    $insertStmt->execute();
+
+    return (int)$conn->lastInsertId();
+}
+
+function parseServiceSubjectInput(string $rawText): array {
+    $text = trim($rawText);
+    if ($text === '') {
+        return ['', ''];
+    }
+
+    $parts = preg_split('/\s*-\s*/', $text, 2);
+    if ($parts && count($parts) === 2) {
+        $subjectCode = trim($parts[0]);
+        $subjectName = trim($parts[1]);
+        if ($subjectCode !== '' && $subjectName !== '') {
+            return [$subjectCode, $subjectName];
+        }
+    }
+
+    $sanitized = preg_replace('/[^A-Za-z0-9]+/', '', strtoupper($text));
+    $subjectCode = $sanitized !== '' ? substr($sanitized, 0, 50) : 'SRV' . date('His');
+    return [$subjectCode, $text];
+}
+
+function findOrCreateSubjectId(PDO $conn, int $semester, string $rawSubjectText): ?int {
+    $trimmed = trim($rawSubjectText);
+    if ($trimmed === '') {
+        return null;
+    }
+
+    [$subjectCode, $subjectName] = parseServiceSubjectInput($trimmed);
+
+    $findStmt = $conn->prepare("SELECT id FROM subjects WHERE LOWER(subject_code) = LOWER(:subject_code) OR LOWER(subject_name) = LOWER(:subject_name) LIMIT 1");
+    $findStmt->bindValue(':subject_code', $subjectCode, PDO::PARAM_STR);
+    $findStmt->bindValue(':subject_name', $subjectName, PDO::PARAM_STR);
+    $findStmt->execute();
+    $found = $findStmt->fetch(PDO::FETCH_ASSOC);
+    if ($found) {
+        return (int)$found['id'];
+    }
+
+    ensureServiceNullableColumns($conn);
+
+    $insertStmt = $conn->prepare("INSERT INTO subjects (subject_code, subject_name, lec_credits, lab_credits, curriculum_id, year_level, semester)
+                                  VALUES (:subject_code, :subject_name, 0, 0, NULL, NULL, NULL)");
+    $insertStmt->bindValue(':subject_code', substr($subjectCode, 0, 50), PDO::PARAM_STR);
+    $insertStmt->bindValue(':subject_name', substr($subjectName, 0, 200), PDO::PARAM_STR);
+    $insertStmt->execute();
+
+    return (int)$conn->lastInsertId();
+}
+
+function findOrCreateRoomId(PDO $conn, string $roomName): ?int {
+    $roomName = trim($roomName);
+    if ($roomName === '') {
+        return null;
+    }
+
+    $findStmt = $conn->prepare("SELECT id FROM rooms WHERE LOWER(room_name) = LOWER(:room_name) LIMIT 1");
+    $findStmt->bindValue(':room_name', $roomName, PDO::PARAM_STR);
+    $findStmt->execute();
+    $found = $findStmt->fetch(PDO::FETCH_ASSOC);
+    if ($found) {
+        return (int)$found['id'];
+    }
+
+    $insertStmt = $conn->prepare("INSERT INTO rooms (room_name, capacity) VALUES (:room_name, 50)");
+    $insertStmt->bindValue(':room_name', substr($roomName, 0, 50), PDO::PARAM_STR);
+    $insertStmt->execute();
+
+    return (int)$conn->lastInsertId();
+}
+
 function isOpenVenueRoom(PDO $conn, ?int $room_id): bool {
     if ($room_id === null || $room_id <= 0) return false;
     $stmt = $conn->prepare("SELECT room_name FROM rooms WHERE id = :id LIMIT 1");
@@ -180,10 +295,14 @@ try {
 
         $schoolyear_id = (int)($_POST['schoolyear_id'] ?? 0);
         $class_id = (int)($_POST['class_id'] ?? 0);
+        $program_id = (int)($_POST['program_id'] ?? 0);
+        $class_section_name = trim((string)($_POST['class_section_name'] ?? ''));
         $class_mode = strtoupper(trim((string)($_POST['class_mode'] ?? 'LEC')));
         $subject_id_raw = $_POST['subject_id'] ?? null;
+        $subject_name = trim((string)($_POST['subject_name'] ?? ''));
         $instructor_id_raw = $_POST['instructor_id'] ?? null;
         $room_id_raw = $_POST['room_id'] ?? null;
+        $room_name = trim((string)($_POST['room_name'] ?? ''));
         $day_of_week = trim((string)($_POST['day_of_week'] ?? ''));
         $start_time = trim((string)($_POST['start_time'] ?? ''));
         $end_time = trim((string)($_POST['end_time'] ?? ''));
@@ -205,6 +324,23 @@ try {
         if ($schoolyear_id <= 0) {
             echo json_encode(['success' => false, 'message' => 'No active school year found']);
             exit;
+        }
+
+        if ($class_id <= 0 && $class_section_name !== '') {
+            $class_id = findOrCreateServiceClassId($conn, $schoolyear_id, $class_section_name);
+        }
+
+        if ($subject_id === null && $subject_name !== '') {
+            $semesterStmt = $conn->prepare("SELECT semester FROM schoolyear WHERE id = :id LIMIT 1");
+            $semesterStmt->bindValue(':id', $schoolyear_id, PDO::PARAM_INT);
+            $semesterStmt->execute();
+            $semesterRow = $semesterStmt->fetch(PDO::FETCH_ASSOC);
+            $semester = $semesterRow ? (int)$semesterRow['semester'] : 1;
+            $subject_id = findOrCreateSubjectId($conn, $semester, $subject_name);
+        }
+
+        if ($room_id === null && $room_name !== '') {
+            $room_id = findOrCreateRoomId($conn, $room_name);
         }
 
         if ($class_id <= 0 || $subject_id === null || $day_of_week === '' || $start_time === '' || $end_time === '') {
@@ -270,10 +406,14 @@ try {
         $id = (int)($_POST['id'] ?? 0);
         $schoolyear_id = (int)($_POST['schoolyear_id'] ?? 0);
         $class_id = (int)($_POST['class_id'] ?? 0);
+        $program_id = (int)($_POST['program_id'] ?? 0);
+        $class_section_name = trim((string)($_POST['class_section_name'] ?? ''));
         $class_mode = strtoupper(trim((string)($_POST['class_mode'] ?? 'LEC')));
         $subject_id_raw = $_POST['subject_id'] ?? null;
+        $subject_name = trim((string)($_POST['subject_name'] ?? ''));
         $instructor_id_raw = $_POST['instructor_id'] ?? null;
         $room_id_raw = $_POST['room_id'] ?? null;
+        $room_name = trim((string)($_POST['room_name'] ?? ''));
         $day_of_week = trim((string)($_POST['day_of_week'] ?? ''));
         $start_time = trim((string)($_POST['start_time'] ?? ''));
         $end_time = trim((string)($_POST['end_time'] ?? ''));
@@ -288,7 +428,7 @@ try {
             $class_size = 40;
         }
 
-        if ($id <= 0 || $class_id <= 0 || $subject_id === null || $day_of_week === '' || $start_time === '' || $end_time === '') {
+        if ($id <= 0 || $day_of_week === '' || $start_time === '' || $end_time === '') {
             echo json_encode(['success' => false, 'message' => 'Missing required fields']);
             exit;
         }
@@ -306,6 +446,28 @@ try {
 
         if ($schoolyear_id <= 0) {
             echo json_encode(['success' => false, 'message' => 'No active school year found']);
+            exit;
+        }
+
+        if ($class_id <= 0 && $class_section_name !== '') {
+            $class_id = findOrCreateServiceClassId($conn, $schoolyear_id, $class_section_name);
+        }
+
+        if ($subject_id === null && $subject_name !== '') {
+            $semesterStmt = $conn->prepare("SELECT semester FROM schoolyear WHERE id = :id LIMIT 1");
+            $semesterStmt->bindValue(':id', $schoolyear_id, PDO::PARAM_INT);
+            $semesterStmt->execute();
+            $semesterRow = $semesterStmt->fetch(PDO::FETCH_ASSOC);
+            $semester = $semesterRow ? (int)$semesterRow['semester'] : 1;
+            $subject_id = findOrCreateSubjectId($conn, $semester, $subject_name);
+        }
+
+        if ($room_id === null && $room_name !== '') {
+            $room_id = findOrCreateRoomId($conn, $room_name);
+        }
+
+        if ($class_id <= 0 || $subject_id === null) {
+            echo json_encode(['success' => false, 'message' => 'Missing required fields']);
             exit;
         }
 
@@ -420,13 +582,20 @@ try {
             exit;
         }
 
-        $stmt = $conn->prepare("SELECT c.id, c.section_name, p.id AS program_id, p.program_code, p.program_name
+        $stmt = $conn->prepare("SELECT c.id, c.section_name, c.curriculum_id, p.id AS program_id, p.program_code, p.program_name
                                 FROM class c
                                 LEFT JOIN curriculum cu ON cu.id = c.curriculum_id
                                 LEFT JOIN programs p ON p.id = cu.program_id
                                 WHERE c.schoolyear_id = ?
                                 ORDER BY p.program_code, c.section_name");
         $stmt->execute([$activeSchoolYearId]);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        echo json_encode(['success' => true, 'data' => $rows]);
+        exit;
+    }
+    if ($action === 'getAllSubjects') {
+        $conn = $db->connect();
+        $stmt = $conn->query("SELECT id, subject_code, subject_name, lec_credits, lab_credits, curriculum_id FROM subjects ORDER BY subject_code, subject_name");
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
         echo json_encode(['success' => true, 'data' => $rows]);
         exit;

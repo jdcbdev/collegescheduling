@@ -27,21 +27,26 @@ const appState = {
   activeSchoolYearText: 'SY: --',
   activeSchoolYearId: 0,
   subjectsByClass: {},
+  allSubjects: [],
   currentSchedulesById: {},
   modalSelectOptionsCache: {}
 };
 
 const SEARCH_INPUT_BY_SELECT_ID = {
+  addScheduleClass: 'addScheduleClassSearch',
   addScheduleSubject: 'addScheduleSubjectSearch',
   addScheduleInstructor: 'addScheduleInstructorSearch',
   addScheduleRoom: 'addScheduleRoomSearch'
 };
 
 const SEARCH_MENU_BY_SELECT_ID = {
+  addScheduleClass: 'addScheduleClassMenu',
   addScheduleSubject: 'addScheduleSubjectMenu',
   addScheduleInstructor: 'addScheduleInstructorMenu',
   addScheduleRoom: 'addScheduleRoomMenu'
 };
+
+const ALWAYS_CUSTOM_SEARCHABLE_SELECT_IDS = new Set(['addScheduleSubject', 'addScheduleRoom']);
 
 let scheduleModalInstance = null;
 let subjectProgressModalInstance = null;
@@ -719,6 +724,23 @@ function renderSearchMenu(selectId, queryText='') {
   });
 }
 
+function isServiceProgramSelected() {
+  const programSelect = getEl('addScheduleProgramSelect');
+  if (!programSelect || !programSelect.value) return false;
+  const prog = appState.programs.find(p => String(p.id) === String(programSelect.value));
+  return !!(prog && String(prog.program_code).toUpperCase() === 'SERVICE');
+}
+
+function canSelectAcceptCustomValue(selectId) {
+  if (ALWAYS_CUSTOM_SEARCHABLE_SELECT_IDS.has(selectId)) {
+    return true;
+  }
+  if (selectId === 'addScheduleClass') {
+    return isServiceProgramSelected();
+  }
+  return false;
+}
+
 function setSelectValueBySearchText(selectId, text, allowBestMatch=false) {
   const selectEl = getEl(selectId);
   if (!selectEl) return;
@@ -745,6 +767,10 @@ function setSelectValueBySearchText(selectId, text, allowBestMatch=false) {
   }
 
   if (!matched) {
+    if (canSelectAcceptCustomValue(selectId) && selectEl.value !== '') {
+      selectEl.value = '';
+      selectEl.dispatchEvent(new Event('change'));
+    }
     return;
   }
 
@@ -765,7 +791,9 @@ function syncSearchInputWithSelect(selectId) {
 
   const selectedOption = selectEl.options[selectEl.selectedIndex];
   if (!selectedOption || !selectEl.value) {
-    inputEl.value = '';
+    if (!canSelectAcceptCustomValue(selectId) || !String(inputEl.value || '').trim()) {
+      inputEl.value = '';
+    }
     closeSearchMenu(selectId);
     return;
   }
@@ -871,7 +899,8 @@ function loadPrograms() {
       }
       const dropdown = getEl('programDropdown');
       if (dropdown && data.success && Array.isArray(data.data)) {
-        populateSelectOptions(dropdown, 'Select Program', data.data, 'id', p => `${p.program_code}`);
+        const headerPrograms = data.data.filter(p => String(p.program_code).toUpperCase() !== 'SERVICE');
+        populateSelectOptions(dropdown, 'Select Program', headerPrograms, 'id', p => `${p.program_code}`);
       }
     });
 }
@@ -949,6 +978,16 @@ function loadAllClassSections() {
     });
 }
 
+function loadAllSubjects() {
+  return fetch('schedule_actions.php?action=getAllSubjects')
+    .then(r => r.json())
+    .then(data => {
+      if (data.success && Array.isArray(data.data)) {
+        appState.allSubjects = data.data;
+      }
+    });
+}
+
 function loadClassSections(programId) {
   const dropdown = getEl('classSectionDropdown');
   if (!programId) {
@@ -992,10 +1031,15 @@ function getProgramIdByClass(classId) {
   return classData && classData.program_id ? String(classData.program_id) : '';
 }
 
+function getServiceProgramId() {
+  const prog = appState.programs.find(p => String(p.program_code).toUpperCase() === 'SERVICE');
+  return prog ? String(prog.id) : '';
+}
+
 function fillModalPrograms(selectedProgramId='') {
   const programSelect = getEl('addScheduleProgramSelect');
   populateSelectOptions(programSelect, 'Select Program', appState.programs, 'id', p => `${p.program_code} - ${p.program_name}`);
-  if (programSelect && selectedProgramId) {
+  if (programSelect && selectedProgramId !== '' && selectedProgramId !== null && selectedProgramId !== undefined) {
     programSelect.value = String(selectedProgramId);
   }
 }
@@ -1010,6 +1054,57 @@ function fillModalClassSections(programId, selectedClassId='') {
   if (classSelect && selectedClassId) {
     classSelect.value = String(selectedClassId);
   }
+}
+
+function fillModalAllClassSections(selectedClassId='') {
+  const classSelect = getEl('addScheduleClass');
+  const serviceClasses = appState.classes.filter(c => !c.program_id);
+  populateSelectOptions(classSelect, 'Select or Type Class Section', serviceClasses, 'id', c => c.section_name);
+  if (classSelect && selectedClassId) {
+    classSelect.value = String(selectedClassId);
+  }
+}
+
+function fillModalSubjectsForServiceProgram(selectedSubjectId='') {
+  const subjectSelect = getEl('addScheduleSubject');
+  const serviceSubjects = appState.allSubjects.filter(s => s.curriculum_id === null || s.curriculum_id === undefined || s.curriculum_id === '');
+  populateSelectOptions(subjectSelect, 'Type or Select Subject', serviceSubjects, 'id', s => `${s.subject_code} - ${s.subject_name}`);
+  if (subjectSelect && selectedSubjectId) {
+    subjectSelect.value = String(selectedSubjectId);
+  }
+}
+
+function handleModalProgramSelection(programValue) {
+  const selectedProgram = String(programValue || '');
+  const classSelect = getEl('addScheduleClass');
+  const classInput = getEl('addScheduleClassSearch');
+
+  const prog = appState.programs.find(p => String(p.id) === selectedProgram);
+  const isService = !!(prog && String(prog.program_code).toUpperCase() === 'SERVICE');
+
+  if (isService) {
+    fillModalAllClassSections();
+    fillModalSubjectsForServiceProgram();
+    if (classInput) {
+      classInput.placeholder = 'Type to add or search class section';
+    }
+    updateClassModeBySubject(getEl('addScheduleSubject') ? getEl('addScheduleSubject').value : '');
+    updateRequiredHours();
+    syncModalSearchableInputs();
+    return;
+  }
+
+  fillModalClassSections(selectedProgram);
+  populateSelectOptions(getEl('addScheduleSubject'), 'Select Subject', [], 'id', s => `${s.subject_code} - ${s.subject_name}`);
+  if (classInput) {
+    classInput.placeholder = 'Type to search class section...';
+  }
+  if (classSelect) {
+    classSelect.value = '';
+  }
+  updateClassModeBySubject('');
+  updateRequiredHours();
+  syncModalSearchableInputs();
 }
 
 function calculateRequiredHours(subject, classMode, semester) {
@@ -1052,6 +1147,10 @@ function updateRequiredHours() {
   const subjectId = subjectSelect ? subjectSelect.value : '';
   const classMode = classModeSelect ? classModeSelect.value : 'LEC';
   const classId = getEl('addScheduleClass') ? getEl('addScheduleClass').value : '';
+  if (isServiceProgramSelected()) {
+    hoursDisplay.innerHTML = '';
+    return;
+  }
   if (!subjectId || !classId) {
     hoursDisplay.innerHTML = '';
     return;
@@ -1073,7 +1172,18 @@ function updateRequiredHours() {
 function updateClassModeBySubject(subjectId) {
   const classModeSelect = getEl('addScheduleClassMode');
   const classId = getEl('addScheduleClass') ? getEl('addScheduleClass').value : '';
-  if (!classModeSelect || !classId) {
+  if (!classModeSelect) {
+    return;
+  }
+
+  if (isServiceProgramSelected()) {
+    classModeSelect.disabled = false;
+    classModeSelect.innerHTML = '<option value="LEC">LEC</option><option value="LAB">LAB</option>';
+    classModeSelect.value = 'LEC';
+    return;
+  }
+
+  if (!classId) {
     return;
   }
 
@@ -1152,12 +1262,16 @@ function ensureAddScheduleModal() {
               </div>
               <div class="mb-2">
                 <label class="form-label mb-1">Class Section</label>
-                <select id="addScheduleClass" class="form-select" required></select>
+                <div class="position-relative">
+                  <input id="addScheduleClassSearch" type="text" autocomplete="off" class="form-control mb-1" placeholder="Type to search class section...">
+                  <div id="addScheduleClassMenu" class="list-group position-absolute w-100 shadow-sm d-none" style="z-index:1080; max-height:220px; overflow-y:auto;"></div>
+                </div>
+                <select id="addScheduleClass" class="form-select d-none" required></select>
               </div>
               <div class="mb-2">
                 <label class="form-label mb-1">Subject</label>
                 <div class="position-relative">
-                  <input id="addScheduleSubjectSearch" type="text" autocomplete="off" class="form-control mb-1" placeholder="Type to search subject...">
+                  <input id="addScheduleSubjectSearch" type="text" autocomplete="off" class="form-control mb-1" placeholder="Type to add or search subject">
                   <div id="addScheduleSubjectMenu" class="list-group position-absolute w-100 shadow-sm d-none" style="z-index:1080; max-height:220px; overflow-y:auto;"></div>
                 </div>
                 <select id="addScheduleSubject" class="form-select d-none"></select>
@@ -1185,7 +1299,7 @@ function ensureAddScheduleModal() {
               <div class="mb-0">
                 <label class="form-label mb-1">Room</label>
                 <div class="position-relative">
-                  <input id="addScheduleRoomSearch" type="text" autocomplete="off" class="form-control mb-1" placeholder="Type to search room...">
+                  <input id="addScheduleRoomSearch" type="text" autocomplete="off" class="form-control mb-1" placeholder="Type to add or search room">
                   <div id="addScheduleRoomMenu" class="list-group position-absolute w-100 shadow-sm d-none" style="z-index:1080; max-height:220px; overflow-y:auto;"></div>
                 </div>
                 <select id="addScheduleRoom" class="form-select d-none"></select>
@@ -1209,15 +1323,20 @@ function ensureAddScheduleModal() {
   const programSelect = getEl('addScheduleProgramSelect');
   if (programSelect) {
     programSelect.addEventListener('change', function () {
-      fillModalClassSections(this.value);
-      populateSelectOptions(getEl('addScheduleSubject'), 'Select Subject', [], 'id', s => `${s.subject_code} - ${s.subject_name}`);
-      updateClassModeBySubject('');
-      updateRequiredHours();
+      handleModalProgramSelection(this.value);
     });
   }
 
   if (classSelect) {
     classSelect.addEventListener('change', function () {
+      if (isServiceProgramSelected()) {
+        fillModalSubjectsForServiceProgram();
+        updateClassModeBySubject(getEl('addScheduleSubject') ? getEl('addScheduleSubject').value : '');
+        updateRequiredHours();
+        syncModalSearchableInputs();
+        return;
+      }
+
       const programId = getProgramIdByClass(this.value);
       if (programSelect && programId) {
         programSelect.value = programId;
@@ -1226,6 +1345,7 @@ function ensureAddScheduleModal() {
         populateSelectOptions(getEl('addScheduleSubject'), 'Select Subject', subjects, 'id', s => `${s.subject_code} - ${s.subject_name}`);
         updateClassModeBySubject(getEl('addScheduleSubject') ? getEl('addScheduleSubject').value : '');
         updateRequiredHours();
+        syncModalSearchableInputs();
       });
     });
   }
@@ -1250,6 +1370,7 @@ function ensureAddScheduleModal() {
     saveBtn.addEventListener('click', saveScheduleFromModal);
   }
 
+  wireModalSearchableSelect('addScheduleClass', 'addScheduleClassSearch');
   wireModalSearchableSelect('addScheduleSubject', 'addScheduleSubjectSearch');
   wireModalSearchableSelect('addScheduleInstructor', 'addScheduleInstructorSearch');
   wireModalSearchableSelect('addScheduleRoom', 'addScheduleRoomSearch');
@@ -1377,6 +1498,10 @@ function openAddScheduleModal(payload) {
     fillModalClassSections(selectedProgramId);
   }
 
+  if (programSelect) {
+    handleModalProgramSelection(programSelect.value);
+  }
+
   const selectedClassId = classSelect.value;
   if (selectedClassId) {
     loadSubjectsByClass(selectedClassId).then(subjects => {
@@ -1435,8 +1560,16 @@ function openEditScheduleModal(scheduleId, panelRefresh) {
   }
 
   const selectedProgramId = getProgramIdByClass(schedule.class_id);
-  fillModalPrograms(selectedProgramId);
-  fillModalClassSections(selectedProgramId, schedule.class_id);
+  const isServiceEdit = !selectedProgramId;
+  const effectiveProgramId = isServiceEdit ? getServiceProgramId() : selectedProgramId;
+
+  fillModalPrograms(effectiveProgramId);
+
+  if (isServiceEdit) {
+    fillModalAllClassSections(schedule.class_id);
+  } else {
+    fillModalClassSections(selectedProgramId, schedule.class_id);
+  }
   populateSelectOptions(instructorSelect, 'Optional Instructor', appState.instructors, 'id', i => `${i.instructor_code} - ${i.lastname}, ${i.firstname}`);
   populateSelectOptions(roomSelect, 'Optional Room', appState.rooms, 'id', rm => rm.room_name);
 
@@ -1464,10 +1597,11 @@ function openEditScheduleModal(scheduleId, panelRefresh) {
   }
 
   const selectedClassId = classSelect ? classSelect.value : '';
-  loadSubjectsByClass(selectedClassId).then(subjects => {
-    populateSelectOptions(subjectSelect, 'Select Subject', subjects, 'id', s => `${s.subject_code} - ${s.subject_name}`);
+  if (isServiceEdit) {
+    fillModalSubjectsForServiceProgram();
     if (subjectSelect) {
-      const matched = subjects.find(s => String(s.subject_code || '') === String(schedule.subject_code || ''));
+      const serviceSubjects = appState.allSubjects.filter(s => !s.curriculum_id);
+      const matched = serviceSubjects.find(s => String(s.subject_code || '') === String(schedule.subject_code || ''));
       subjectSelect.value = matched ? String(matched.id) : '';
       updateClassModeBySubject(subjectSelect.value);
       if (classModeSelect) {
@@ -1476,7 +1610,21 @@ function openEditScheduleModal(scheduleId, panelRefresh) {
       updateRequiredHours();
     }
     syncModalSearchableInputs();
-  });
+  } else {
+    loadSubjectsByClass(selectedClassId).then(subjects => {
+      populateSelectOptions(subjectSelect, 'Select Subject', subjects, 'id', s => `${s.subject_code} - ${s.subject_name}`);
+      if (subjectSelect) {
+        const matched = subjects.find(s => String(s.subject_code || '') === String(schedule.subject_code || ''));
+        subjectSelect.value = matched ? String(matched.id) : '';
+        updateClassModeBySubject(subjectSelect.value);
+        if (classModeSelect) {
+          classModeSelect.value = (schedule.class_mode === 'LAB') ? 'LAB' : 'LEC';
+        }
+        updateRequiredHours();
+      }
+      syncModalSearchableInputs();
+    });
+  }
 
   syncModalSearchableInputs();
   scheduleModalInstance.show();
@@ -1496,13 +1644,17 @@ function saveScheduleFromModal() {
   const instructorId = getEl('addScheduleInstructor').value;
   const roomId = getEl('addScheduleRoom').value;
   const subjectId = getEl('addScheduleSubject').value;
+  const classSectionText = String(getEl('addScheduleClassSearch') ? getEl('addScheduleClassSearch').value : '').trim();
+  const subjectText = String(getEl('addScheduleSubjectSearch') ? getEl('addScheduleSubjectSearch').value : '').trim();
+  const roomText = String(getEl('addScheduleRoomSearch') ? getEl('addScheduleRoomSearch').value : '').trim();
+  const isServiceProgram = isServiceProgramSelected();
   const classMode = getEl('addScheduleClassMode').value;
   const startTime = getEl('addScheduleStartTime').value;
   const endTime = getEl('addScheduleEndTime').value;
   const classSizeRaw = getEl('addScheduleClassSize').value;
   const classSize = Number(classSizeRaw || 40);
 
-  if (!classId) {
+  if (!classId && !(isServiceProgram && classSectionText)) {
     setModalAlert('Class section is required.');
     return;
   }
@@ -1510,7 +1662,7 @@ function saveScheduleFromModal() {
     setModalAlert('Program is required.');
     return;
   }
-  if (!subjectId) {
+  if (!subjectId && !subjectText) {
     setModalAlert('Subject is required.');
     return;
   }
@@ -1551,11 +1703,15 @@ function saveScheduleFromModal() {
   if (mode === 'edit' && scheduleId > 0) {
     payload.set('id', String(scheduleId));
   }
-  payload.set('class_id', classId);
+  payload.set('class_id', classId || '');
+  payload.set('program_id', programId || '');
+  payload.set('class_section_name', (isServiceProgram && !classId) ? classSectionText : '');
   payload.set('subject_id', subjectId || '');
+  payload.set('subject_name', (!subjectId && subjectText) ? subjectText : '');
   payload.set('class_mode', classMode || 'LEC');
   payload.set('instructor_id', instructorId || '');
   payload.set('room_id', roomId || '');
+  payload.set('room_name', (!roomId && roomText) ? roomText : '');
   payload.set('start_time', startTime);
   payload.set('end_time', endTime);
   payload.set('class_size', String(classSize));
@@ -1705,7 +1861,8 @@ function setupDropdowns() {
     loadPrograms(),
     loadInstructors(),
     loadRooms(),
-    loadAllClassSections()
+    loadAllClassSections(),
+    loadAllSubjects()
   ]).finally(() => {
     updateHeaderAndFilters();
     refreshScheduleByCurrentSelection();
