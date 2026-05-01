@@ -1013,28 +1013,40 @@ foreach ($schedules as $sched) {
                                     if ($roomName === '') $roomName = 'TBA';
                                     $timeLabel = minutesTo12H(timeToMinutes((string)$s['start_time'])) . ' - ' . minutesTo12H(timeToMinutes((string)$s['end_time']));
 
+                                    $codeAndMode = trim($subjectCode . ($classMode !== '' ? ' | ' . $classMode : ''));
+                                    $timeAndRoom = trim($timeLabel . ($roomName !== '' ? ' | ' . $roomName : ''));
                                     $lines = [];
-                                    if ($subjectCode !== '') $lines[] = $subjectCode;
-                                    if ($classMode !== '') $lines[] = $classMode;
-                                    if ($classSection !== '') $lines[] = $classSection;
-                                    if ($timeLabel !== '') $lines[] = $timeLabel;
-                                    if ($type !== 'instructor' && $instructorName !== '') $lines[] = $instructorName;
-                                    if ($type !== 'room' && $roomName !== '') $lines[] = $roomName;
-                                    $tooltip = implode(' | ', $lines);
+                                    if ($isClassView) {
+                                        if ($subjectTitle !== '') $lines[] = $subjectTitle;
+                                        if ($codeAndMode !== '') $lines[] = $codeAndMode;
+                                        if ($timeAndRoom !== '') $lines[] = $timeAndRoom;
+                                        if ($instructorName !== '') $lines[] = $instructorName;
+                                    } elseif ($isInstructorView) {
+                                        if ($codeAndMode !== '') $lines[] = $codeAndMode;
+                                        if ($timeAndRoom !== '') $lines[] = $timeAndRoom;
+                                        if ($classSection !== '') $lines[] = $classSection;
+                                    } elseif ($isRoomView) {
+                                        if ($codeAndMode !== '') $lines[] = $codeAndMode;
+                                        if ($timeLabel !== '') $lines[] = $timeLabel;
+                                        if ($classSection !== '') $lines[] = $classSection;
+                                        if ($instructorName !== '') $lines[] = $instructorName;
+                                    }
+                                    $tooltip = implode("\n", $lines);
                             ?>
                                 <td class="schedule-cell" rowspan="<?php echo (int)$event['rowspan']; ?>">
                                     <div class="schedule-event" title="<?php echo htmlspecialchars($tooltip); ?>" style="background: <?php echo htmlspecialchars($color['bg']); ?>; border-left-color: <?php echo htmlspecialchars($color['border']); ?>;">
                                         <?php if ($isClassView && $layout === 'grid'): ?>
                                             <div class="event-line"><strong><?php echo htmlspecialchars(trim($subjectCode . ($classMode !== '' ? ' | ' . $classMode : ''))); ?></strong></div>
-                                            <div class="event-line"><?php echo htmlspecialchars(trim(($roomName !== '' ? $roomName . ' | ' : '') . $timeLabel)); ?></div>
+                                            <div class="event-line"><?php echo htmlspecialchars(trim($timeLabel . ($roomName !== '' ? ' | ' . $roomName : ''))); ?></div>
                                             <?php if ($instructorName !== ''): ?><div class="event-line"><?php echo htmlspecialchars($instructorName); ?></div><?php endif; ?>
                                         <?php elseif ($isInstructorView && $layout === 'grid'): ?>
                                             <div class="event-line"><strong><?php echo htmlspecialchars(trim($subjectCode . ($classMode !== '' ? ' | ' . $classMode : ''))); ?></strong></div>
-                                            <div class="event-line"><?php echo htmlspecialchars(trim(($roomName !== '' ? $roomName . ' | ' : '') . $timeLabel)); ?></div>
+                                            <div class="event-line"><?php echo htmlspecialchars(trim($timeLabel . ($roomName !== '' ? ' | ' . $roomName : ''))); ?></div>
                                             <?php if ($classSection !== ''): ?><div class="event-line"><?php echo htmlspecialchars($classSection); ?></div><?php endif; ?>
                                         <?php elseif ($isRoomView && $layout === 'grid'): ?>
                                             <div class="event-line"><strong><?php echo htmlspecialchars(trim($subjectCode . ($classMode !== '' ? ' | ' . $classMode : ''))); ?></strong></div>
-                                            <div class="event-line"><?php echo htmlspecialchars(trim($timeLabel . ($classSection !== '' ? ' | ' . $classSection : ''))); ?></div>
+                                            <div class="event-line"><?php echo htmlspecialchars($timeLabel); ?></div>
+                                            <?php if ($classSection !== ''): ?><div class="event-line"><?php echo htmlspecialchars($classSection); ?></div><?php endif; ?>
                                             <?php if ($instructorName !== ''): ?><div class="event-line"><?php echo htmlspecialchars($instructorName); ?></div><?php endif; ?>
                                         <?php else: ?>
                                             <div class="event-title"><?php echo htmlspecialchars($subjectTitle); ?></div>

@@ -267,7 +267,7 @@ try {
                     sub.subject_code,
                     sub.subject_name,
                     c.section_name AS class_section,
-                    CONCAT(i.lastname, ', ', i.firstname) AS instructor_name,
+                    CONCAT(i.firstname, ' ', i.lastname) AS instructor_name,
                     r.room_name
                 FROM schedules s
                 LEFT JOIN subjects sub ON sub.id = s.subject_id

@@ -417,6 +417,7 @@ function buildScheduleCellHtml(item, palette, viewType='class') {
 
   const scheduleId = item && item.id ? Number(item.id) : 0;
   const eventColor = palette || EVENT_PALETTE[0];
+  const lineStyle = 'white-space:nowrap; overflow:hidden; text-overflow:ellipsis;';
 
   const detailsLine = details.length ? `<div>${escapeHtml(details.join(' | '))}</div>` : '';
   // Only show instructor if not viewing by instructor
@@ -424,21 +425,78 @@ function buildScheduleCellHtml(item, palette, viewType='class') {
   // Only show room if not viewing by room
   const roomLine = (viewType !== 'room') ? `<div>${escapeHtml(item.room_name || 'TBA')}</div>` : '';
 
-  // Build full tooltip text with all details
-  const tooltipLines = [title];
-  if (item.class_mode) tooltipLines.push(item.class_mode);
-  if (item.class_section) tooltipLines.push(item.class_section);
-  if (timeRange) tooltipLines.push(timeRange);
-  if (item.instructor_name) tooltipLines.push(item.instructor_name);
-  if (item.room_name) tooltipLines.push(item.room_name);
+  const codeAndMode = [item.subject_code || '', item.class_mode || ''].filter(Boolean).join(' | ');
+  const timeAndRoom = [timeRange, item.room_name || 'TBA'].filter(Boolean).join(' | ');
+  const instructorOnly = item.instructor_name || '';
+  const classSectionOnly = item.class_section || '';
+
+  let tooltipLines = [title];
+  if (viewType === 'class') {
+    if (codeAndMode) tooltipLines.push(codeAndMode);
+    if (timeAndRoom) tooltipLines.push(timeAndRoom);
+    if (instructorOnly) tooltipLines.push(instructorOnly);
+  } else if (viewType === 'instructor') {
+    tooltipLines = [title];
+    if (codeAndMode) tooltipLines.push(codeAndMode);
+    if (timeAndRoom) tooltipLines.push(timeAndRoom);
+    if (classSectionOnly) tooltipLines.push(classSectionOnly);
+  } else if (viewType === 'room') {
+    tooltipLines = [title];
+    if (codeAndMode) tooltipLines.push(codeAndMode);
+    if (timeRange) tooltipLines.push(timeRange);
+    if (classSectionOnly) tooltipLines.push(classSectionOnly);
+    if (instructorOnly) tooltipLines.push(instructorOnly);
+  } else {
+    if (item.class_mode) tooltipLines.push(item.class_mode);
+    if (item.class_section) tooltipLines.push(item.class_section);
+    if (timeRange) tooltipLines.push(timeRange);
+    if (item.instructor_name) tooltipLines.push(item.instructor_name);
+    if (item.room_name) tooltipLines.push(item.room_name);
+  }
   const tooltipText = tooltipLines.join('\n');
+
+  if (viewType === 'class') {
+    return `
+    <div class="p-1 h-100 sched-event-card" data-schedule-id="${scheduleId}" title="${escapeHtml(tooltipText)}" style="background:${eventColor.bg}; border-left:3px solid ${eventColor.border}; font-size:11px; line-height:1.25; overflow:hidden; display:flex; flex-direction:column;">
+      <div style="font-weight:600; ${lineStyle}">${escapeHtml(title)}</div>
+      ${codeAndMode ? `<div style="${lineStyle}">${escapeHtml(codeAndMode)}</div>` : ''}
+      ${timeAndRoom ? `<div style="${lineStyle}">${escapeHtml(timeAndRoom)}</div>` : ''}
+      ${instructorOnly ? `<div style="${lineStyle}">${escapeHtml(instructorOnly)}</div>` : ''}
+    </div>
+  `;
+  }
+
+  if (viewType === 'instructor') {
+    return `
+    <div class="p-1 h-100 sched-event-card" data-schedule-id="${scheduleId}" title="${escapeHtml(tooltipText)}" style="background:${eventColor.bg}; border-left:3px solid ${eventColor.border}; font-size:11px; line-height:1.25; overflow:hidden; display:flex; flex-direction:column;">
+      <div style="font-weight:600; ${lineStyle}">${escapeHtml(title)}</div>
+      ${codeAndMode ? `<div style="${lineStyle}">${escapeHtml(codeAndMode)}</div>` : ''}
+      ${timeAndRoom ? `<div style="${lineStyle}">${escapeHtml(timeAndRoom)}</div>` : ''}
+      ${classSectionOnly ? `<div style="${lineStyle}">${escapeHtml(classSectionOnly)}</div>` : ''}
+    </div>
+  `;
+  }
+
+  if (viewType === 'room') {
+    const timeOnly = timeRange;
+
+    return `
+    <div class="p-1 h-100 sched-event-card" data-schedule-id="${scheduleId}" title="${escapeHtml(tooltipText)}" style="background:${eventColor.bg}; border-left:3px solid ${eventColor.border}; font-size:11px; line-height:1.25; overflow:hidden; display:flex; flex-direction:column;">
+      <div style="font-weight:600; ${lineStyle}">${escapeHtml(title)}</div>
+      ${codeAndMode ? `<div style="${lineStyle}">${escapeHtml(codeAndMode)}</div>` : ''}
+      ${timeOnly ? `<div style="${lineStyle}">${escapeHtml(timeOnly)}</div>` : ''}
+      ${classSectionOnly ? `<div style="${lineStyle}">${escapeHtml(classSectionOnly)}</div>` : ''}
+      ${instructorOnly ? `<div style="${lineStyle}">${escapeHtml(instructorOnly)}</div>` : ''}
+    </div>
+  `;
+  }
 
   return `
     <div class="p-1 h-100 sched-event-card" data-schedule-id="${scheduleId}" title="${escapeHtml(tooltipText)}" style="background:${eventColor.bg}; border-left:3px solid ${eventColor.border}; font-size:11px; line-height:1.25; overflow:hidden; display:flex; flex-direction:column;">
-      <div style="font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(title)}</div>
-      ${detailsLine.replace(/<div>/g, '<div style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">').replace(/<\/div>/g, '</div>')}
-      ${instructorLine.replace(/<div>/g, '<div style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">').replace(/<\/div>/g, '</div>')}
-      ${roomLine.replace(/<div>/g, '<div style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">').replace(/<\/div>/g, '</div>')}
+      <div style="font-weight:600; ${lineStyle}">${escapeHtml(title)}</div>
+      ${detailsLine.replace(/<div>/g, `<div style="${lineStyle}">`).replace(/<\/div>/g, '</div>')}
+      ${instructorLine.replace(/<div>/g, `<div style="${lineStyle}">`).replace(/<\/div>/g, '</div>')}
+      ${roomLine.replace(/<div>/g, `<div style="${lineStyle}">`).replace(/<\/div>/g, '</div>')}
     </div>
   `;
 }
