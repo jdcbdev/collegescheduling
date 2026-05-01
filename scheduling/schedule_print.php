@@ -793,6 +793,7 @@ foreach ($schedules as $sched) {
                 $labCredits = (string)($s['lab_credits'] ?? '');
                 $mode = trim((string)($s['class_mode'] ?? ''));
                 $assignedInstructor = trim((string)($s['instructor_name'] ?? ''));
+                $classSection = trim((string)($s['class_section'] ?? ''));
 
                 $groupKey = implode('|', [
                     strtolower($subjectCode),
@@ -817,6 +818,7 @@ foreach ($schedules as $sched) {
                         'start_time' => $startRaw,
                         'end_time' => $endRaw,
                         'class_size' => $size,
+                        'class_section' => $classSection,
                         'mode' => $mode,
                         'remarks' => $assignedInstructor,
                         'day_flags' => []
@@ -886,7 +888,7 @@ foreach ($schedules as $sched) {
                     <th style="width:8%;">ROOM</th>
                     <th style="width:8%;">START TIME</th>
                     <th style="width:8%;">END TIME</th>
-                    <th style="width:6%;">SIZE</th>
+                    <th style="width:7%;"><?php echo ($isInstructorView || $isRoomView) ? 'CLASS' : 'SIZE'; ?></th>
                     <th>REMARKS</th>
                 </tr>
             </thead>
@@ -897,7 +899,7 @@ foreach ($schedules as $sched) {
                 <?php
                     $subjectRowCounts = [];
                     foreach ($listRows as $countRow) {
-                        $countKey = strtolower((string)($countRow['subject_code'] ?? '')) . '|' . strtolower((string)($countRow['subject_name'] ?? ''));
+                        $countKey = strtolower((string)($countRow['subject_code'] ?? '')) . '|' . strtolower((string)($countRow['subject_name'] ?? '')) . '|' . strtolower((string)($countRow['class_section'] ?? ''));
                         if (!isset($subjectRowCounts[$countKey])) {
                             $subjectRowCounts[$countKey] = 0;
                         }
@@ -933,14 +935,14 @@ foreach ($schedules as $sched) {
                     $labDisplay = $isLabMode ? ($labCreditsValue !== '' ? $labCreditsValue : '0') : '0';
                     $remarksValue = (string)($row['remarks'] ?? '');
 
-                    $subjectKey = strtolower((string)($row['subject_code'] ?? '')) . '|' . strtolower((string)($row['subject_name'] ?? ''));
+                    $subjectKey = strtolower((string)($row['subject_code'] ?? '')) . '|' . strtolower((string)($row['subject_name'] ?? '')) . '|' . strtolower((string)($row['class_section'] ?? ''));
                     if (!isset($subjectSeenCounts[$subjectKey])) {
                         $subjectSeenCounts[$subjectKey] = 0;
                     }
                     $subjectSeenCounts[$subjectKey]++;
 
                     $isDuplicateFollowup = (($subjectRowCounts[$subjectKey] ?? 0) > 1) && ($subjectSeenCounts[$subjectKey] > 1);
-                    if ($isLabMode || $isDuplicateFollowup) {
+                    if (!$isRoomView && ($isLabMode || $isDuplicateFollowup)) {
                         $remarksValue = $remarksValue !== '' ? ('SAME ID (' . $remarksValue . ')') : 'SAME ID';
                     }
                 ?>
@@ -953,7 +955,7 @@ foreach ($schedules as $sched) {
                     <td><?php echo htmlspecialchars((string)($row['room_name'] ?? '')); ?></td>
                     <td><?php echo htmlspecialchars($startLabel); ?></td>
                     <td><?php echo htmlspecialchars($endLabel); ?></td>
-                    <td><?php echo htmlspecialchars((string)($row['class_size'] ?? '')); ?></td>
+                    <td><?php echo htmlspecialchars(($isInstructorView || $isRoomView) ? (string)($row['class_section'] ?? '') : (string)($row['class_size'] ?? '')); ?></td>
                     <td><?php echo htmlspecialchars($remarksValue); ?></td>
                 </tr>
                 <?php endforeach; ?>
