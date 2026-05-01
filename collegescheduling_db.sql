@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: May 01, 2026 at 10:03 AM
+-- Generation Time: May 01, 2026 at 12:59 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -32,9 +32,9 @@ USE `collegescheduling_db`;
 CREATE TABLE `class` (
   `id` int(11) NOT NULL,
   `schoolyear_id` int(11) NOT NULL,
-  `curriculum_id` int(11) NOT NULL,
-  `section_name` varchar(50) NOT NULL,
-  `year_level` int(11) NOT NULL,
+  `curriculum_id` int(11) DEFAULT NULL,
+  `section_name` varchar(50) DEFAULT NULL,
+  `year_level` int(11) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -73,7 +73,9 @@ INSERT INTO `class` (`id`, `schoolyear_id`, `curriculum_id`, `section_name`, `ye
 (29, 1, 2, 'BSIT 4B', 4, '2026-04-29 14:39:00'),
 (30, 1, 2, 'BSIT 4C', 4, '2026-04-29 14:39:09'),
 (31, 1, 5, 'MIT 1A', 1, '2026-04-29 14:39:24'),
-(32, 1, 5, 'MIT 2A', 2, '2026-04-29 14:39:32');
+(32, 1, 5, 'MIT 2A', 2, '2026-04-29 14:39:32'),
+(33, 3, NULL, 'BS BIO 4A', NULL, '2026-05-01 09:37:14'),
+(34, 3, NULL, 'BS BIO 4B', NULL, '2026-05-01 10:11:45');
 
 -- --------------------------------------------------------
 
@@ -212,7 +214,8 @@ INSERT INTO `programs` (`id`, `program_code`, `program_name`, `department_id`, `
 (2, 'BSIT', 'Bachelor of Science in Information Technology', 2, '2026-04-17 12:07:18'),
 (3, 'ACT-AD', 'Associate in Computer Technology - Applications Development', 3, '2026-04-17 12:07:47'),
 (4, 'ACT-NT', 'Associate in Computer Technology - Networking', 3, '2026-04-17 12:08:01'),
-(5, 'MIT', 'Master in Information Technology', 4, '2026-04-17 12:08:15');
+(5, 'MIT', 'Master in Information Technology', 4, '2026-04-17 12:08:15'),
+(6, 'SERVICE', 'Service Program', NULL, '2026-05-01 09:42:37');
 
 -- --------------------------------------------------------
 
@@ -238,8 +241,9 @@ INSERT INTO `rooms` (`id`, `room_name`, `capacity`, `created_at`) VALUES
 (4, 'LR 4', 50, '2026-04-17 11:47:36'),
 (5, 'LAB 1', 40, '2026-04-17 11:47:40'),
 (6, 'LAB 2', 40, '2026-04-17 11:47:45'),
-(7, 'Gym', 50, '2026-04-26 05:07:36'),
-(8, 'Field', 50, '2026-04-26 05:07:41');
+(7, 'GYM', 50, '2026-04-26 05:07:36'),
+(8, 'FIELD', 50, '2026-04-26 05:07:41'),
+(9, 'CSM 205', 50, '2026-05-01 09:37:14');
 
 -- --------------------------------------------------------
 
@@ -350,13 +354,13 @@ INSERT INTO `schoolyear` (`id`, `start_year`, `end_year`, `semester`, `is_active
 CREATE TABLE `subjects` (
   `id` int(11) NOT NULL,
   `subject_code` varchar(50) NOT NULL,
-  `subject_name` varchar(200) NOT NULL,
+  `subject_name` varchar(200) DEFAULT NULL,
   `lec_credits` int(11) DEFAULT 0,
   `lab_credits` int(11) DEFAULT 0,
   `total_credits` int(11) GENERATED ALWAYS AS (`lec_credits` + `lab_credits`) STORED,
   `curriculum_id` int(11) DEFAULT NULL,
-  `year_level` int(11) NOT NULL,
-  `semester` int(11) NOT NULL,
+  `year_level` int(11) DEFAULT NULL,
+  `semester` int(11) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -567,7 +571,8 @@ INSERT INTO `subjects` (`id`, `subject_code`, `subject_name`, `lec_credits`, `la
 (202, 'ITE4', 'IT Elective 4', 2, 1, 4, 4, 2, '2026-04-18 10:10:17'),
 (203, 'GE3', 'GE Elective 3', 3, 0, 4, 4, 2, '2026-04-18 10:10:17'),
 (204, 'IT421', 'Cloud Computing', 2, 1, 4, 4, 2, '2026-04-18 10:10:17'),
-(205, 'IT422', 'Practicum / Industry Immersion', 0, 6, 4, 4, 2, '2026-04-18 10:10:17');
+(205, 'IT422', 'Practicum / Industry Immersion', 0, 6, 4, 4, 2, '2026-04-18 10:10:17'),
+(206, 'MST303', 'MST 303', 0, 0, NULL, NULL, NULL, '2026-05-01 09:37:14');
 
 --
 -- Indexes for dumped tables
@@ -657,7 +662,7 @@ ALTER TABLE `subjects`
 -- AUTO_INCREMENT for table `class`
 --
 ALTER TABLE `class`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=33;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=35;
 
 --
 -- AUTO_INCREMENT for table `college_officials`
@@ -687,19 +692,19 @@ ALTER TABLE `instructors`
 -- AUTO_INCREMENT for table `programs`
 --
 ALTER TABLE `programs`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `rooms`
 --
 ALTER TABLE `rooms`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT for table `schedules`
 --
 ALTER TABLE `schedules`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=75;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=77;
 
 --
 -- AUTO_INCREMENT for table `schoolyear`
@@ -711,7 +716,7 @@ ALTER TABLE `schoolyear`
 -- AUTO_INCREMENT for table `subjects`
 --
 ALTER TABLE `subjects`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=206;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=207;
 
 --
 -- Constraints for dumped tables
