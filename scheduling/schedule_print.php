@@ -872,6 +872,17 @@ foreach ($schedules as $sched) {
                 <?php if (empty($listRows)): ?>
                 <tr><td colspan="10" style="text-align:center; padding: 20px; color:#888;">No schedule entries found.</td></tr>
                 <?php else: ?>
+                <?php
+                    $subjectRowCounts = [];
+                    foreach ($listRows as $countRow) {
+                        $countKey = strtolower((string)($countRow['subject_code'] ?? '')) . '|' . strtolower((string)($countRow['subject_name'] ?? ''));
+                        if (!isset($subjectRowCounts[$countKey])) {
+                            $subjectRowCounts[$countKey] = 0;
+                        }
+                        $subjectRowCounts[$countKey]++;
+                    }
+                    $subjectSeenCounts = [];
+                ?>
                 <?php foreach ($listRows as $row):
                     $startMin = timeToMinutes((string)($row['start_time'] ?? ''));
                     $endMin = timeToMinutes((string)($row['end_time'] ?? ''));
@@ -898,6 +909,18 @@ foreach ($schedules as $sched) {
                     $labCreditsValue = (string)($row['lab_credits'] ?? '0');
                     $lecDisplay = $isLabMode ? '0' : ($lecCreditsValue !== '' ? $lecCreditsValue : '0');
                     $labDisplay = $isLabMode ? ($labCreditsValue !== '' ? $labCreditsValue : '0') : '0';
+                    $remarksValue = (string)($row['remarks'] ?? '');
+
+                    $subjectKey = strtolower((string)($row['subject_code'] ?? '')) . '|' . strtolower((string)($row['subject_name'] ?? ''));
+                    if (!isset($subjectSeenCounts[$subjectKey])) {
+                        $subjectSeenCounts[$subjectKey] = 0;
+                    }
+                    $subjectSeenCounts[$subjectKey]++;
+
+                    $isDuplicateFollowup = (($subjectRowCounts[$subjectKey] ?? 0) > 1) && ($subjectSeenCounts[$subjectKey] > 1);
+                    if ($isLabMode || $isDuplicateFollowup) {
+                        $remarksValue = $remarksValue !== '' ? ('SAME ID (' . $remarksValue . ')') : 'SAME ID';
+                    }
                 ?>
                 <tr>
                     <td><?php echo htmlspecialchars((string)($row['subject_code'] ?? '')); ?></td>
@@ -909,7 +932,7 @@ foreach ($schedules as $sched) {
                     <td><?php echo htmlspecialchars($startLabel); ?></td>
                     <td><?php echo htmlspecialchars($endLabel); ?></td>
                     <td><?php echo htmlspecialchars((string)($row['class_size'] ?? '')); ?></td>
-                    <td><?php echo htmlspecialchars((string)($row['remarks'] ?? '')); ?></td>
+                    <td><?php echo htmlspecialchars($remarksValue); ?></td>
                 </tr>
                 <?php endforeach; ?>
                 <?php endif; ?>
