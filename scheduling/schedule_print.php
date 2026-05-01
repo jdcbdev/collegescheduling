@@ -676,6 +676,10 @@ foreach ($schedules as $sched) {
         }
 
         /* List layout */
+        .list-table {
+            table-layout: auto;
+        }
+
         .list-table th, .list-table td {
             text-align: center;
             vertical-align: middle;
@@ -796,6 +800,7 @@ foreach ($schedules as $sched) {
                 $startRaw = (string)($s['start_time'] ?? '');
                 $endRaw = (string)($s['end_time'] ?? '');
                 $room = trim((string)($s['room_name'] ?? ''));
+                if ($room === '') $room = 'TBA';
                 $size = (string)($s['class_size'] ?? '');
                 $lecCredits = (string)($s['lec_credits'] ?? '');
                 $labCredits = (string)($s['lab_credits'] ?? '');
@@ -893,10 +898,10 @@ foreach ($schedules as $sched) {
                     <th style="width:6%;">LEC</th>
                     <th style="width:6%;">LAB</th>
                     <th style="width:8%;">DAYS</th>
-                    <th style="width:8%;">ROOM</th>
-                    <th style="width:8%;">START TIME</th>
-                    <th style="width:8%;">END TIME</th>
-                    <th style="width:7%;"><?php echo ($isInstructorView || $isRoomView) ? 'CLASS' : 'SIZE'; ?></th>
+                    <th style="width:6%;">ROOM</th>
+                    <th style="width:8.5%;">START TIME</th>
+                    <th style="width:8.5%;">END TIME</th>
+                    <th style="width:8%;"><?php echo ($isInstructorView || $isRoomView) ? 'CLASS' : 'SIZE'; ?></th>
                     <th>REMARKS</th>
                 </tr>
             </thead>
@@ -942,6 +947,12 @@ foreach ($schedules as $sched) {
                     $lecDisplay = $isLabMode ? '0' : ($lecCreditsValue !== '' ? $lecCreditsValue : '0');
                     $labDisplay = $isLabMode ? ($labCreditsValue !== '' ? $labCreditsValue : '0') : '0';
                     $remarksValue = (string)($row['remarks'] ?? '');
+                    if ($remarksValue !== '') {
+                        $nameParts = explode(' ', $remarksValue);
+                        $firstName = $nameParts[0];
+                        $lastName = count($nameParts) > 1 ? end($nameParts) : '';
+                        $remarksValue = strtoupper(substr($firstName, 0, 1)) . '. ' . $lastName;
+                    }
 
                     $subjectKey = strtolower((string)($row['subject_code'] ?? '')) . '|' . strtolower((string)($row['subject_name'] ?? '')) . '|' . strtolower((string)($row['class_section'] ?? ''));
                     if (!isset($subjectSeenCounts[$subjectKey])) {
@@ -956,15 +967,15 @@ foreach ($schedules as $sched) {
                 ?>
                 <tr>
                     <td><?php echo htmlspecialchars((string)($row['subject_code'] ?? '')); ?></td>
-                    <td class="subject-name-col"><?php echo htmlspecialchars($description); ?></td>
+                    <td class="subject-name-col" style="white-space:nowrap;"><?php echo htmlspecialchars($description); ?></td>
                     <td><?php echo htmlspecialchars($lecDisplay); ?></td>
                     <td><?php echo htmlspecialchars($labDisplay); ?></td>
                     <td><?php echo htmlspecialchars(implode(' ', $abbrDays)); ?></td>
-                    <td><?php echo htmlspecialchars((string)($row['room_name'] ?? '')); ?></td>
+                    <td><?php echo htmlspecialchars((string)($row['room_name'] ?? 'TBA')); ?></td>
                     <td><?php echo htmlspecialchars($startLabel); ?></td>
                     <td><?php echo htmlspecialchars($endLabel); ?></td>
                     <td><?php echo htmlspecialchars(($isInstructorView || $isRoomView) ? (string)($row['class_section'] ?? '') : (string)($row['class_size'] ?? '')); ?></td>
-                    <td><?php echo htmlspecialchars($remarksValue); ?></td>
+                    <td style="white-space:nowrap;"><?php echo htmlspecialchars($remarksValue); ?></td>
                 </tr>
                 <?php endforeach; ?>
                 <?php endif; ?>
@@ -1004,6 +1015,7 @@ foreach ($schedules as $sched) {
                                     $classSection = trim((string)($s['class_section'] ?? ''));
                                     $instructorName = trim((string)($s['instructor_name'] ?? ''));
                                     $roomName = trim((string)($s['room_name'] ?? ''));
+                                    if ($roomName === '') $roomName = 'TBA';
                                     $timeLabel = minutesTo12H(timeToMinutes((string)$s['start_time'])) . ' - ' . minutesTo12H(timeToMinutes((string)$s['end_time']));
 
                                     $lines = [];
