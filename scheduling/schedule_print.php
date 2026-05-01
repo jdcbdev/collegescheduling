@@ -380,15 +380,21 @@ foreach ($schedules as $sched) {
                 margin: 0.5in;
             }
 
+            html,
             body {
                 margin: 0;
                 padding: 0;
+                background: #fff !important;
             }
+        }
+
+        html {
+            background: #fff;
         }
         
         body {
             font-family: Arial, sans-serif;
-            background: #f5f5f5;
+            background: #fff;
             padding: 20px;
         }
         
@@ -531,6 +537,7 @@ foreach ($schedules as $sched) {
             padding: 4px;
             text-align: left;
             height: 20px;
+            overflow: visible;
         }
         
         th {
@@ -551,18 +558,26 @@ foreach ($schedules as $sched) {
         
         .schedule-cell {
             font-size: 8px;
-            padding: 3px;
+            padding: 0;
             word-break: break-word;
             overflow-wrap: anywhere;
             line-height: 1.1;
+            position: relative;
         }
 
         .schedule-event {
-            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            min-height: 100%;
             padding: 4px;
             border-left-width: 3px;
             border-left-style: solid;
             border-radius: 2px;
+            box-sizing: border-box;
+            overflow: hidden;
+            z-index: 1;
         }
 
         .event-title {
@@ -1003,13 +1018,27 @@ foreach ($schedules as $sched) {
                             ?>
                                 <td class="schedule-cell" rowspan="<?php echo (int)$event['rowspan']; ?>">
                                     <div class="schedule-event" title="<?php echo htmlspecialchars($tooltip); ?>" style="background: <?php echo htmlspecialchars($color['bg']); ?>; border-left-color: <?php echo htmlspecialchars($color['border']); ?>;">
-                                        <div class="event-title"><?php echo htmlspecialchars($subjectTitle); ?></div>
-                                        <?php if ($subjectCode !== ''): ?><div class="event-line"><?php echo htmlspecialchars($subjectCode); ?></div><?php endif; ?>
-                                        <?php if ($classMode !== ''): ?><div class="event-line"><?php echo htmlspecialchars($classMode); ?></div><?php endif; ?>
-                                        <?php if ($classSection !== ''): ?><div class="event-line"><?php echo htmlspecialchars($classSection); ?></div><?php endif; ?>
-                                        <div class="event-line"><?php echo htmlspecialchars($timeLabel); ?></div>
-                                        <?php if ($type !== 'instructor' && $instructorName !== ''): ?><div class="event-line"><?php echo htmlspecialchars($instructorName); ?></div><?php endif; ?>
-                                        <?php if ($type !== 'room' && $roomName !== ''): ?><div class="event-line"><?php echo htmlspecialchars($roomName); ?></div><?php endif; ?>
+                                        <?php if ($isClassView && $layout === 'grid'): ?>
+                                            <div class="event-line"><strong><?php echo htmlspecialchars(trim($subjectCode . ($classMode !== '' ? ' | ' . $classMode : ''))); ?></strong></div>
+                                            <div class="event-line"><?php echo htmlspecialchars(trim(($roomName !== '' ? $roomName . ' | ' : '') . $timeLabel)); ?></div>
+                                            <?php if ($instructorName !== ''): ?><div class="event-line"><?php echo htmlspecialchars($instructorName); ?></div><?php endif; ?>
+                                        <?php elseif ($isInstructorView && $layout === 'grid'): ?>
+                                            <div class="event-line"><strong><?php echo htmlspecialchars(trim($subjectCode . ($classMode !== '' ? ' | ' . $classMode : ''))); ?></strong></div>
+                                            <div class="event-line"><?php echo htmlspecialchars(trim(($roomName !== '' ? $roomName . ' | ' : '') . $timeLabel)); ?></div>
+                                            <?php if ($classSection !== ''): ?><div class="event-line"><?php echo htmlspecialchars($classSection); ?></div><?php endif; ?>
+                                        <?php elseif ($isRoomView && $layout === 'grid'): ?>
+                                            <div class="event-line"><strong><?php echo htmlspecialchars(trim($subjectCode . ($classMode !== '' ? ' | ' . $classMode : ''))); ?></strong></div>
+                                            <div class="event-line"><?php echo htmlspecialchars(trim($timeLabel . ($classSection !== '' ? ' | ' . $classSection : ''))); ?></div>
+                                            <?php if ($instructorName !== ''): ?><div class="event-line"><?php echo htmlspecialchars($instructorName); ?></div><?php endif; ?>
+                                        <?php else: ?>
+                                            <div class="event-title"><?php echo htmlspecialchars($subjectTitle); ?></div>
+                                            <?php if ($subjectCode !== ''): ?><div class="event-line"><?php echo htmlspecialchars($subjectCode); ?></div><?php endif; ?>
+                                            <?php if ($classMode !== ''): ?><div class="event-line"><?php echo htmlspecialchars($classMode); ?></div><?php endif; ?>
+                                            <?php if ($classSection !== ''): ?><div class="event-line"><?php echo htmlspecialchars($classSection); ?></div><?php endif; ?>
+                                            <div class="event-line"><?php echo htmlspecialchars($timeLabel); ?></div>
+                                            <?php if ($type !== 'instructor' && $instructorName !== ''): ?><div class="event-line"><?php echo htmlspecialchars($instructorName); ?></div><?php endif; ?>
+                                            <?php if ($type !== 'room' && $roomName !== ''): ?><div class="event-line"><?php echo htmlspecialchars($roomName); ?></div><?php endif; ?>
+                                        <?php endif; ?>
                                     </div>
                                 </td>
                             <?php } else { ?>
