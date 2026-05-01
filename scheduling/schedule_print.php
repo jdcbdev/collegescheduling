@@ -377,7 +377,6 @@ foreach ($schedules as $sched) {
         @media print {
             @page {
                 size: 13in 8.5in;
-                margin: 0.5in;
             }
 
             html,
@@ -404,7 +403,7 @@ foreach ($schedules as $sched) {
             max-height: 8.5in;
             background: white;
             margin: 0 auto;
-            padding: 0.25in 0.5in 0.5in 0.5in;
+            padding: 0.6in 1in 1in 1in;
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
             position: relative;
         }
