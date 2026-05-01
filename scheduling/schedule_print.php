@@ -1027,22 +1027,22 @@ foreach ($schedules as $sched) {
         <?php endif; ?>
         
         <?php if (!$isRoomView && !($isClassView && $layout === 'grid')): ?>
-        <div class="footer">
+        <div class="footer" style="<?php echo $layout === 'list' ? 'margin-top:0.5in;' : ''; ?>">
             <div class="signature-line">
                 <p>PREPARED BY:</p>
-                <div class="signature-name text-align-center"><?php echo htmlspecialchars($preparedByName !== '' ? $preparedByName : '____________________________________'); ?></div>
+                <div class="signature-name text-align-center" style="<?php echo $layout === 'list' ? 'margin-top:0.3in;' : ''; ?>"><?php echo htmlspecialchars($preparedByName !== '' ? $preparedByName : '____________________________________'); ?></div>
                 <div class="signature-role text-align-center"><?php echo htmlspecialchars($preparedByRole); ?></div>
             </div>
             <?php if (!$isInstructorView): ?>
             <div class="signature-line">
                 <p>RECOMMENDING APPROVAL:</p>
-                <div class="signature-name text-align-center"><?php echo htmlspecialchars($recommendingByName !== '' ? $recommendingByName : '____________________________________'); ?></div>
+                <div class="signature-name text-align-center" style="<?php echo $layout === 'list' ? 'margin-top:0.3in;' : ''; ?>"><?php echo htmlspecialchars($recommendingByName !== '' ? $recommendingByName : '____________________________________'); ?></div>
                 <div class="signature-role text-align-center"><?php echo htmlspecialchars($recommendingByRole); ?></div>
             </div>
             <?php endif; ?>
             <div class="signature-line">
                 <p>APPROVED BY:</p>
-                <div class="signature-name text-align-center"><?php echo htmlspecialchars($approvedByName !== '' ? $approvedByName : '____________________________________'); ?></div>
+                <div class="signature-name text-align-center" style="<?php echo $layout === 'list' ? 'margin-top:0.3in;' : ''; ?>"><?php echo htmlspecialchars($approvedByName !== '' ? $approvedByName : '____________________________________'); ?></div>
                 <div class="signature-role text-align-center"><?php echo htmlspecialchars($approvedByRole); ?></div>
             </div>
         </div>
