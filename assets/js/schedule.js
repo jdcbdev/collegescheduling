@@ -1902,6 +1902,10 @@ function setupPrintButton() {
   if (printBtn) {
     printBtn.addEventListener('click', openPrintView);
   }
+  const printListBtn = getEl('btnPrintScheduleList');
+  if (printListBtn) {
+    printListBtn.addEventListener('click', openPrintListView);
+  }
 }
 
 function openPrintView() {
@@ -1920,6 +1924,25 @@ function openPrintView() {
   
   const printUrl = '../scheduling/schedule_print.php?' + params.toString();
   window.open(printUrl, 'schedule_print', 'width=1200,height=800,menubar=yes,toolbar=yes');
+}
+
+function openPrintListView() {
+  const context = getCurrentContextSelection();
+  
+  if (!context.id) {
+    alert('Please select a ' + context.label + ' to print');
+    return;
+  }
+  
+  const params = new URLSearchParams({
+    type: context.type,
+    id: context.id,
+    schoolyear_id: appState.activeSchoolYearId || 0,
+    layout: 'list'
+  });
+  
+  const printUrl = '../scheduling/schedule_print.php?' + params.toString();
+  window.open(printUrl, 'schedule_print_list', 'width=900,height=800,menubar=yes,toolbar=yes');
 }
 
 // ============================================================

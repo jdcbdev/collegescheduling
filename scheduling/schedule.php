@@ -46,6 +46,9 @@ $navBasePath = '../';
                     <button id="btnPrintSchedule" type="button" class="btn btn-outline-secondary" title="Print/Export Schedule">
                       <i class="ti ti-printer"></i>
                     </button>
+                    <button id="btnPrintScheduleList" type="button" class="btn btn-outline-secondary" title="Print Schedule as List">
+                      <i class="ti ti-list"></i>
+                    </button>
                   </div>
                 </div>
                 <div class="card-body p-4 pt-2 pb-2" style="padding-bottom: 5px !important;">

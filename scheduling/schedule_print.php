@@ -9,6 +9,11 @@ if (!in_array($type, ['class', 'instructor', 'room'], true) || $id <= 0) {
     die('Invalid parameters');
 }
 
+$layout = strtolower(trim($_GET['layout'] ?? 'grid'));
+if (!in_array($layout, ['grid', 'list'], true)) {
+    $layout = 'grid';
+}
+
 $db = new Database();
 $conn = $db->connect();
 
@@ -232,7 +237,7 @@ try {
 
 // Fetch schedules for the selected entity
 $sql = "SELECT s.*, 
-        sub.subject_code, sub.subject_name,
+        sub.subject_code, sub.subject_name, sub.lec_credits, sub.lab_credits,
         c.section_name as class_section,
         CONCAT(i.firstname, ' ', i.lastname) as instructor_name,
         r.room_name,
@@ -632,6 +637,30 @@ foreach ($schedules as $sched) {
         .btn:hover {
             background: #f0f0f0;
         }
+
+        /* List layout */
+        .list-table th, .list-table td {
+            text-align: center;
+            vertical-align: middle;
+            font-size: 11px;
+            padding: 5px 6px;
+        }
+
+        .list-table th {
+            background: #f0f0f0;
+            font-weight: bold;
+        }
+
+        .list-table td.subject-name-col {
+            text-align: left;
+        }
+
+        @media print {
+            .list-table th, .list-table td {
+                font-size: 9px;
+                padding: 3px 4px;
+            }
+        }
     </style>
 </head>
 <body class="<?php echo $isRoomView ? 'room-print' : ''; ?>">
@@ -715,6 +744,178 @@ foreach ($schedules as $sched) {
         </div>
         <?php endif; ?>
         
+        <?php if ($layout === 'list'): ?>
+        <?php
+            // Merge rows that share subject and time while combining day abbreviations.
+            $dayOrder = array_flip(['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']);
+            $dayAbbr = [
+                'Monday' => 'M',
+                'Tuesday' => 'T',
+                'Wednesday' => 'W',
+                'Thursday' => 'TH',
+                'Friday' => 'F',
+                'Saturday' => 'S',
+                'Sunday' => 'S'
+            ];
+
+            $listGroups = [];
+            foreach ($schedules as $s) {
+                $day = ucfirst(strtolower(trim((string)($s['day_of_week'] ?? ''))));
+                $subjectCode = trim((string)($s['subject_code'] ?? ''));
+                $subjectName = trim((string)($s['subject_name'] ?? $subjectCode));
+                $startRaw = (string)($s['start_time'] ?? '');
+                $endRaw = (string)($s['end_time'] ?? '');
+                $room = trim((string)($s['room_name'] ?? ''));
+                $size = (string)($s['class_size'] ?? '');
+                $lecCredits = (string)($s['lec_credits'] ?? '');
+                $labCredits = (string)($s['lab_credits'] ?? '');
+                $mode = trim((string)($s['class_mode'] ?? ''));
+                $assignedInstructor = trim((string)($s['instructor_name'] ?? ''));
+
+                $groupKey = implode('|', [
+                    strtolower($subjectCode),
+                    strtolower($subjectName),
+                    $startRaw,
+                    $endRaw,
+                    strtolower($room),
+                    $size,
+                    $lecCredits,
+                    $labCredits,
+                    strtolower($mode),
+                    strtolower($assignedInstructor)
+                ]);
+
+                if (!isset($listGroups[$groupKey])) {
+                    $listGroups[$groupKey] = [
+                        'subject_code' => $subjectCode,
+                        'subject_name' => $subjectName,
+                        'lec_credits' => $lecCredits,
+                        'lab_credits' => $labCredits,
+                        'room_name' => $room,
+                        'start_time' => $startRaw,
+                        'end_time' => $endRaw,
+                        'class_size' => $size,
+                        'mode' => $mode,
+                        'remarks' => $assignedInstructor,
+                        'day_flags' => []
+                    ];
+                }
+
+                if ($day !== '') {
+                    $listGroups[$groupKey]['day_flags'][$day] = true;
+                }
+            }
+
+            $listRows = array_values($listGroups);
+            usort($listRows, function($a, $b) use ($dayOrder) {
+                $subjectCmp = strcmp((string)($a['subject_code'] ?? ''), (string)($b['subject_code'] ?? ''));
+                if ($subjectCmp !== 0) {
+                    return $subjectCmp;
+                }
+
+                $nameCmp = strcmp((string)($a['subject_name'] ?? ''), (string)($b['subject_name'] ?? ''));
+                if ($nameCmp !== 0) {
+                    return $nameCmp;
+                }
+
+                $modeA = strtolower((string)($a['mode'] ?? ''));
+                $modeB = strtolower((string)($b['mode'] ?? ''));
+                $modeRank = function ($modeValue) {
+                    if (strpos($modeValue, 'lec') !== false) {
+                        return 0;
+                    }
+                    if (strpos($modeValue, 'lab') !== false) {
+                        return 1;
+                    }
+                    return 2;
+                };
+                $rankA = $modeRank($modeA);
+                $rankB = $modeRank($modeB);
+                if ($rankA !== $rankB) {
+                    return $rankA - $rankB;
+                }
+
+                $daysA = array_keys($a['day_flags']);
+                $daysB = array_keys($b['day_flags']);
+                $firstDayA = $daysA[0] ?? '';
+                $firstDayB = $daysB[0] ?? '';
+                $dA = $dayOrder[$firstDayA] ?? 99;
+                $dB = $dayOrder[$firstDayB] ?? 99;
+                if ($dA !== $dB) {
+                    return $dA - $dB;
+                }
+                $startA = timeToMinutes((string)($a['start_time'] ?? ''));
+                $startB = timeToMinutes((string)($b['start_time'] ?? ''));
+                if ($startA !== $startB) {
+                    return $startA - $startB;
+                }
+
+                return strcmp((string)($a['room_name'] ?? ''), (string)($b['room_name'] ?? ''));
+            });
+        ?>
+        <table class="list-table">
+            <thead>
+                <tr>
+                    <th style="width:10%;">SUBJECT</th>
+                    <th>DESCRIPTION</th>
+                    <th style="width:6%;">LEC</th>
+                    <th style="width:6%;">LAB</th>
+                    <th style="width:12%;">DAYS</th>
+                    <th style="width:11%;">ROOM</th>
+                    <th style="width:10%;">START TIME</th>
+                    <th style="width:10%;">END TIME</th>
+                    <th style="width:7%;">SIZE</th>
+                    <th style="width:10%;">REMARKS</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (empty($listRows)): ?>
+                <tr><td colspan="10" style="text-align:center; padding: 20px; color:#888;">No schedule entries found.</td></tr>
+                <?php else: ?>
+                <?php foreach ($listRows as $row):
+                    $startMin = timeToMinutes((string)($row['start_time'] ?? ''));
+                    $endMin = timeToMinutes((string)($row['end_time'] ?? ''));
+                    $startLabel = $startMin >= 0 ? minutesTo12H($startMin) : '';
+                    $endLabel = $endMin >= 0 ? minutesTo12H($endMin) : '';
+
+                    $orderedDays = array_keys($row['day_flags']);
+                    usort($orderedDays, function($a, $b) use ($dayOrder) {
+                        return ($dayOrder[$a] ?? 99) - ($dayOrder[$b] ?? 99);
+                    });
+                    $abbrDays = [];
+                    foreach ($orderedDays as $fullDay) {
+                        $abbrDays[] = $dayAbbr[$fullDay] ?? strtoupper(substr($fullDay, 0, 1));
+                    }
+
+                    $description = (string)($row['subject_name'] ?? '');
+                    $modeValue = (string)($row['mode'] ?? '');
+                    $isLabMode = stripos($modeValue, 'lab') !== false;
+                    if (stripos($modeValue, 'lab') !== false && stripos($description, 'lab') === false) {
+                        $description = trim($description . ' LAB');
+                    }
+
+                    $lecCreditsValue = (string)($row['lec_credits'] ?? '0');
+                    $labCreditsValue = (string)($row['lab_credits'] ?? '0');
+                    $lecDisplay = $isLabMode ? '0' : ($lecCreditsValue !== '' ? $lecCreditsValue : '0');
+                    $labDisplay = $isLabMode ? ($labCreditsValue !== '' ? $labCreditsValue : '0') : '0';
+                ?>
+                <tr>
+                    <td><?php echo htmlspecialchars((string)($row['subject_code'] ?? '')); ?></td>
+                    <td class="subject-name-col"><?php echo htmlspecialchars($description); ?></td>
+                    <td><?php echo htmlspecialchars($lecDisplay); ?></td>
+                    <td><?php echo htmlspecialchars($labDisplay); ?></td>
+                    <td><?php echo htmlspecialchars(implode(' ', $abbrDays)); ?></td>
+                    <td><?php echo htmlspecialchars((string)($row['room_name'] ?? '')); ?></td>
+                    <td><?php echo htmlspecialchars($startLabel); ?></td>
+                    <td><?php echo htmlspecialchars($endLabel); ?></td>
+                    <td><?php echo htmlspecialchars((string)($row['class_size'] ?? '')); ?></td>
+                    <td><?php echo htmlspecialchars((string)($row['remarks'] ?? '')); ?></td>
+                </tr>
+                <?php endforeach; ?>
+                <?php endif; ?>
+            </tbody>
+        </table>
+        <?php else: ?>
         <table>
             <thead>
                 <tr>
@@ -778,6 +979,7 @@ foreach ($schedules as $sched) {
                 <?php endforeach; ?>
             </tbody>
         </table>
+        <?php endif; ?>
         
         <?php if (!$isRoomView): ?>
         <div class="footer">
