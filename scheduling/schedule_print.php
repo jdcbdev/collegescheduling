@@ -263,6 +263,7 @@ $sql = "SELECT s.*,
         sub.subject_code, sub.subject_name, sub.lec_credits, sub.lab_credits,
         c.section_name as class_section,
         CONCAT(i.firstname, ' ', i.lastname) as instructor_name,
+        CONCAT(UPPER(LEFT(i.firstname, 1)), '. ', i.lastname) as instructor_abbr,
         r.room_name,
         p.program_name
 FROM schedules s
@@ -805,7 +806,7 @@ foreach ($schedules as $sched) {
                 $lecCredits = (string)($s['lec_credits'] ?? '');
                 $labCredits = (string)($s['lab_credits'] ?? '');
                 $mode = trim((string)($s['class_mode'] ?? ''));
-                $assignedInstructor = trim((string)($s['instructor_name'] ?? ''));
+                $assignedInstructor = trim((string)($s['instructor_abbr'] ?? ''));
                 $classSection = trim((string)($s['class_section'] ?? ''));
 
                 $groupKey = implode('|', [
@@ -829,7 +830,7 @@ foreach ($schedules as $sched) {
                         'lab_credits' => $labCredits,
                         'room_name' => $room,
                         'start_time' => $startRaw,
-                        'end_time' => $endRaw,
+                        'end_time' => $endRaw,$schedules,
                         'class_size' => $size,
                         'class_section' => $classSection,
                         'mode' => $mode,
@@ -947,12 +948,6 @@ foreach ($schedules as $sched) {
                     $lecDisplay = $isLabMode ? '0' : ($lecCreditsValue !== '' ? $lecCreditsValue : '0');
                     $labDisplay = $isLabMode ? ($labCreditsValue !== '' ? $labCreditsValue : '0') : '0';
                     $remarksValue = (string)($row['remarks'] ?? '');
-                    if ($remarksValue !== '') {
-                        $nameParts = explode(' ', $remarksValue);
-                        $firstName = $nameParts[0];
-                        $lastName = count($nameParts) > 1 ? end($nameParts) : '';
-                        $remarksValue = strtoupper(substr($firstName, 0, 1)) . '. ' . $lastName;
-                    }
 
                     $subjectKey = strtolower((string)($row['subject_code'] ?? '')) . '|' . strtolower((string)($row['subject_name'] ?? '')) . '|' . strtolower((string)($row['class_section'] ?? ''));
                     if (!isset($subjectSeenCounts[$subjectKey])) {
@@ -975,7 +970,7 @@ foreach ($schedules as $sched) {
                     <td><?php echo htmlspecialchars($startLabel); ?></td>
                     <td><?php echo htmlspecialchars($endLabel); ?></td>
                     <td><?php echo htmlspecialchars(($isInstructorView || $isRoomView) ? (string)($row['class_section'] ?? '') : (string)($row['class_size'] ?? '')); ?></td>
-                    <td style="white-space:nowrap;"><?php echo htmlspecialchars($remarksValue); ?></td>
+                    <td style="white-space:nowrap; text-align: left;"><?php echo htmlspecialchars($remarksValue); ?></td>
                 </tr>
                 <?php endforeach; ?>
                 <?php endif; ?>
