@@ -568,10 +568,11 @@ foreach ($schedules as $sched) {
         .event-title {
             font-weight: 700;
             margin-bottom: 2px;
+            font-size: 11px;
         }
 
         .event-line {
-            font-size: 8px;
+            font-size: 11px;
             line-height: 1.2;
         }
         
@@ -590,7 +591,7 @@ foreach ($schedules as $sched) {
             display: flex;
             justify-content: space-between;
             margin-top: 15px;
-            font-size: 11px;
+            font-size: 12px;
         }
 
         .text-align-center{
@@ -613,7 +614,7 @@ foreach ($schedules as $sched) {
 
         .signature-role {
             margin-top: 4px;
-            font-size: 10px;
+            font-size: 11px;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.3px;
@@ -664,8 +665,8 @@ foreach ($schedules as $sched) {
         .list-table th, .list-table td {
             text-align: center;
             vertical-align: middle;
-            font-size: 11px;
-            padding: 5px 6px;
+            font-size: 12px;
+            padding: 7px 8px;
         }
 
         .list-table th {
@@ -675,13 +676,6 @@ foreach ($schedules as $sched) {
 
         .list-table td.subject-name-col {
             text-align: left;
-        }
-
-        @media print {
-            .list-table th, .list-table td {
-                font-size: 9px;
-                padding: 3px 4px;
-            }
         }
     </style>
 </head>

@@ -1908,6 +1908,12 @@ function setupPrintButton() {
   }
 }
 
+function getMaxPrintWindowFeatures() {
+  const width = Math.max(1024, window.screen.availWidth || window.innerWidth || 1200);
+  const height = Math.max(700, window.screen.availHeight || window.innerHeight || 800);
+  return 'left=0,top=0,width=' + width + ',height=' + height + ',menubar=yes,toolbar=yes,resizable=yes,scrollbars=yes';
+}
+
 function openPrintView() {
   const context = getCurrentContextSelection();
   
@@ -1923,7 +1929,7 @@ function openPrintView() {
   });
   
   const printUrl = '../scheduling/schedule_print.php?' + params.toString();
-  window.open(printUrl, 'schedule_print', 'width=1200,height=800,menubar=yes,toolbar=yes');
+  window.open(printUrl, 'schedule_print', getMaxPrintWindowFeatures());
 }
 
 function openPrintListView() {
@@ -1942,7 +1948,7 @@ function openPrintListView() {
   });
   
   const printUrl = '../scheduling/schedule_print.php?' + params.toString();
-  window.open(printUrl, 'schedule_print_list', 'width=900,height=800,menubar=yes,toolbar=yes');
+  window.open(printUrl, 'schedule_print_list', getMaxPrintWindowFeatures());
 }
 
 // ============================================================
