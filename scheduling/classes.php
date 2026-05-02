@@ -24,10 +24,6 @@ $navBasePath = '../';
                   <div>
                     <h5 class="card-title mb-1">Class Sections</h5>
                     <p class="text-muted mb-0">Manage class sections per curriculum per year level for the active school year.</p>
-                    <div class="mt-2">
-                      <span class="fw-bold">Active School Year</span><br>
-                      <span id="schoolYearTextHeader">Loading...</span>
-                    </div>
                   </div>
                 </div>
               </div>

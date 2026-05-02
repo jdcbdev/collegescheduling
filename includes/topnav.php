@@ -1,3 +1,16 @@
+<?php
+if (!isset($syLabel)) {
+    if (!class_exists('SchoolYear')) {
+        require_once __DIR__ . '/../classes/SchoolYear.php';
+    }
+    $syObj    = new SchoolYear();
+    $activeSY = $syObj->getActiveSchoolYear();
+    $semLabels = [1 => '1st Sem', 2 => '2nd Sem', 3 => 'Summer'];
+    $syLabel  = $activeSY
+        ? $activeSY['start_year'] . '-' . $activeSY['end_year'] . ' ' . ($semLabels[$activeSY['semester']] ?? 'Sem ' . $activeSY['semester'])
+        : 'No Active School Year';
+}
+?>
 <!--  Header Start -->
       <header class="app-header">
         <nav class="navbar navbar-expand-lg navbar-light">
@@ -31,6 +44,13 @@
           </ul>
           <div class="navbar-collapse justify-content-end px-0" id="navbarNav">
             <ul class="navbar-nav flex-row ms-auto align-items-center justify-content-end">
+              <?php if (!empty($syLabel)): ?>
+              <li class="nav-item me-2">
+                <span class="badge bg-light-primary text-primary fw-semibold px-3 py-2" style="font-size:0.82rem;">
+                  <i class="ti ti-calendar me-1"></i><?= htmlspecialchars($syLabel) ?>
+                </span>
+              </li>
+              <?php endif; ?>
               <li class="nav-item dropdown">
                 <a class="nav-link d-flex align-items-center gap-2" href="javascript:void(0)" id="drop2" data-bs-toggle="dropdown"
                   aria-expanded="false">

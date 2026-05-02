@@ -55,6 +55,18 @@
           </a>
         </li>
 
+        <!-- Academic Awards -->
+        <li class="nav-small-cap">
+          <iconify-icon icon="solar:menu-dots-linear" class="nav-small-cap-icon fs-4"></iconify-icon>
+          <span class="hide-menu">Academic Awards</span>
+        </li>
+        <li class="sidebar-item">
+          <a class="sidebar-link<?= $activePage === 'awards' ? ' active' : '' ?>" href="<?= htmlspecialchars($navBasePath) ?>application/awards.php" aria-expanded="false" data-bs-toggle="tooltip" data-bs-placement="right" title="Awards Application">
+            <iconify-icon icon="solar:medal-ribbons-star-line-duotone"></iconify-icon>
+            <span class="hide-menu">Application</span>
+          </a>
+        </li>
+
         <!-- Users & Enrollment -->
         <li class="nav-small-cap">
           <iconify-icon icon="solar:menu-dots-linear" class="nav-small-cap-icon fs-4"></iconify-icon>
