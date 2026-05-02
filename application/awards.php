@@ -240,6 +240,20 @@ foreach ($officials as $o) {
         var rows = data.map(function (item, index) {
           var badgeClass = item.program_id ? badgeColors[(item.program_id - 1) % badgeColors.length] : 'bg-secondary text-white';
           var syDisplay  = item.school_year_label ? escapeHtml(item.school_year_label) : '<span class="text-muted">—</span>';
+          var gwaNum = item.gwa === null || item.gwa === undefined || item.gwa === '' ? null : Number(item.gwa);
+          var cutoffNum = item.gwa_cutoff === null || item.gwa_cutoff === undefined || item.gwa_cutoff === '' ? null : Number(item.gwa_cutoff);
+          var cutoffValid = !isNaN(cutoffNum);
+          var gwaValid = gwaNum !== null && !isNaN(gwaNum);
+          var gwaBadge = '';
+
+          if (gwaValid) {
+            var isEqualOrBetter = cutoffValid ? (gwaNum <= cutoffNum) : true;
+            var gwaBadgeClass = isEqualOrBetter ? 'bg-info text-white' : 'bg-danger text-white';
+            gwaBadge = '<span class="badge ' + gwaBadgeClass + '">' + escapeHtml(gwaNum.toFixed(5)) + '</span>';
+          } else {
+            gwaBadge = '<span class="badge bg-light-secondary text-secondary"><i class="ti ti-eye me-1"></i>View</span>';
+          }
+
           return '<tr>' +
             '<td>' + (index + 1) + '</td>' +
             '<td>' + escapeHtml(item.ln) + ', ' + escapeHtml(item.fn) + (item.mn ? ' ' + escapeHtml(item.mn) : '') + '</td>' +
@@ -250,7 +264,7 @@ foreach ($officials as $o) {
             '<td>' + (item.curriculum_years ? escapeHtml(item.curriculum_years) : '—') + '</td>' +
             '<td>' + syDisplay + '</td>' +
             '<td><a href="./applicant_grades.php?id=' + item.id + '&criteria_id=' + (item.criteria_id || '') + '" class="fw-semibold">' +
-              (item.gwa ? escapeHtml(item.gwa) : '<span class="text-muted fst-italic">Not computed</span>') +
+              gwaBadge +
             '</a></td>' +
             '<td><div class="d-flex gap-2 align-items-center">' +
               '<button type="button" class="btn btn-sm btn-outline-primary btn-edit-applicant" data-id="' + item.id + '">Edit</button>' +

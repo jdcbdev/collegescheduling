@@ -89,7 +89,7 @@ class Applicant extends Database {
                        CONCAT(sy.start_year, '-', sy.end_year, ' ',
                            CASE sy.semester WHEN 1 THEN '1st Sem' WHEN 2 THEN '2nd Sem' WHEN 3 THEN 'Summer' ELSE CONCAT('Sem ', sy.semester) END
                        ) AS school_year_label,
-                       a.criteria_id, ac.title AS criteria_title,
+                       a.criteria_id, ac.title AS criteria_title, ac.gwa_cutoff,
                        a.created_at
                 FROM applicants a
                 LEFT JOIN programs       p  ON a.program_id    = p.id
@@ -116,7 +116,7 @@ class Applicant extends Database {
                        CONCAT(sy.start_year, '-', sy.end_year, ' ',
                            CASE sy.semester WHEN 1 THEN '1st Sem' WHEN 2 THEN '2nd Sem' WHEN 3 THEN 'Summer' ELSE CONCAT('Sem ', sy.semester) END
                        ) AS school_year_label,
-                       a.criteria_id, ac.title AS criteria_title,
+                       a.criteria_id, ac.title AS criteria_title, ac.gwa_cutoff,
                        a.created_at
                 FROM applicants a
                 LEFT JOIN programs       p  ON a.program_id    = p.id

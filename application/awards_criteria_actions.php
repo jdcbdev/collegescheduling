@@ -41,13 +41,20 @@ switch ($action) {
     case 'add':
         $title = isset($_POST['title']) ? trim($_POST['title']) : '';
         $schoolyearId = isset($_POST['schoolyear_id']) ? (int) $_POST['schoolyear_id'] : 0;
+        $gwaCutoff = isset($_POST['gwa_cutoff']) ? trim($_POST['gwa_cutoff']) : '';
         $excludedSubjects = isset($_POST['excluded_subjects']) ? trim($_POST['excluded_subjects']) : '';
 
         if ($title === '' || $schoolyearId <= 0) {
             jsonResponse(false, null, 'Title and School Year are required.');
         }
 
-        $ok = $criteria->addCriteria($title, $schoolyearId, $excludedSubjects);
+        if ($gwaCutoff !== '' && !is_numeric($gwaCutoff)) {
+            jsonResponse(false, null, 'GWA cut-off must be a valid number.');
+        }
+
+        $gwaCutoff = $gwaCutoff === '' ? null : round((float) $gwaCutoff, 5);
+
+        $ok = $criteria->addCriteria($title, $schoolyearId, $gwaCutoff, $excludedSubjects);
         jsonResponse((bool)$ok, null, $ok ? 'Criteria added successfully.' : 'Failed to add criteria.');
         break;
 
@@ -55,13 +62,20 @@ switch ($action) {
         $id = isset($_POST['id']) ? (int) $_POST['id'] : 0;
         $title = isset($_POST['title']) ? trim($_POST['title']) : '';
         $schoolyearId = isset($_POST['schoolyear_id']) ? (int) $_POST['schoolyear_id'] : 0;
+        $gwaCutoff = isset($_POST['gwa_cutoff']) ? trim($_POST['gwa_cutoff']) : '';
         $excludedSubjects = isset($_POST['excluded_subjects']) ? trim($_POST['excluded_subjects']) : '';
 
         if ($id <= 0 || $title === '' || $schoolyearId <= 0) {
             jsonResponse(false, null, 'ID, Title, and School Year are required.');
         }
 
-        $ok = $criteria->updateCriteria($id, $title, $schoolyearId, $excludedSubjects);
+        if ($gwaCutoff !== '' && !is_numeric($gwaCutoff)) {
+            jsonResponse(false, null, 'GWA cut-off must be a valid number.');
+        }
+
+        $gwaCutoff = $gwaCutoff === '' ? null : round((float) $gwaCutoff, 5);
+
+        $ok = $criteria->updateCriteria($id, $title, $schoolyearId, $gwaCutoff, $excludedSubjects);
         jsonResponse((bool)$ok, null, $ok ? 'Criteria updated successfully.' : 'Failed to update criteria.');
         break;
 

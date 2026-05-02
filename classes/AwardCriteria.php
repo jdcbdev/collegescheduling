@@ -11,7 +11,7 @@ class AwardCriteria {
     public function getAllCriteria() {
         $conn = $this->connect();
 
-        $sql = "SELECT ac.id, ac.title, ac.schoolyear_id, ac.excluded_subjects, ac.created_at,
+        $sql = "SELECT ac.id, ac.title, ac.schoolyear_id, ac.gwa_cutoff, ac.excluded_subjects, ac.created_at,
                        CONCAT(sy.start_year, '-', sy.end_year, ' ',
                            CASE sy.semester WHEN 1 THEN '1st Sem' WHEN 2 THEN '2nd Sem' WHEN 3 THEN 'Summer' ELSE CONCAT('Sem ', sy.semester) END
                        ) AS school_year_label
@@ -27,7 +27,7 @@ class AwardCriteria {
     public function getCriteriaById($id) {
         $conn = $this->connect();
 
-        $sql = "SELECT id, title, schoolyear_id, excluded_subjects, created_at
+        $sql = "SELECT id, title, schoolyear_id, gwa_cutoff, excluded_subjects, created_at
                 FROM awards_criteria
                 WHERE id = :id";
 
@@ -38,26 +38,28 @@ class AwardCriteria {
         return $query->fetch(PDO::FETCH_ASSOC);
     }
 
-    public function addCriteria($title, $schoolyearId, $excludedSubjects) {
+    public function addCriteria($title, $schoolyearId, $gwaCutoff, $excludedSubjects) {
         $conn = $this->connect();
 
-        $sql = "INSERT INTO awards_criteria (title, schoolyear_id, excluded_subjects)
-                VALUES (:title, :schoolyear_id, :excluded_subjects)";
+        $sql = "INSERT INTO awards_criteria (title, schoolyear_id, gwa_cutoff, excluded_subjects)
+                VALUES (:title, :schoolyear_id, :gwa_cutoff, :excluded_subjects)";
 
         $query = $conn->prepare($sql);
         $query->bindValue(':title', trim($title));
         $query->bindValue(':schoolyear_id', (int) $schoolyearId, PDO::PARAM_INT);
+        $query->bindValue(':gwa_cutoff', $gwaCutoff, $gwaCutoff === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
         $query->bindValue(':excluded_subjects', trim($excludedSubjects));
 
         return $query->execute();
     }
 
-    public function updateCriteria($id, $title, $schoolyearId, $excludedSubjects) {
+    public function updateCriteria($id, $title, $schoolyearId, $gwaCutoff, $excludedSubjects) {
         $conn = $this->connect();
 
         $sql = "UPDATE awards_criteria
                 SET title = :title,
                     schoolyear_id = :schoolyear_id,
+                    gwa_cutoff = :gwa_cutoff,
                     excluded_subjects = :excluded_subjects
                 WHERE id = :id";
 
@@ -65,6 +67,7 @@ class AwardCriteria {
         $query->bindValue(':id', (int) $id, PDO::PARAM_INT);
         $query->bindValue(':title', trim($title));
         $query->bindValue(':schoolyear_id', (int) $schoolyearId, PDO::PARAM_INT);
+        $query->bindValue(':gwa_cutoff', $gwaCutoff, $gwaCutoff === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
         $query->bindValue(':excluded_subjects', trim($excludedSubjects));
 
         return $query->execute();

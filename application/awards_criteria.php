@@ -22,7 +22,7 @@ $navBasePath = '../';
                 <div class="card-body d-flex justify-content-between align-items-center">
                   <div>
                     <h5 class="card-title mb-1">Awards Criteria</h5>
-                    <p class="text-muted mb-0">Manage awards criteria titles, school year scope, and excluded subjects for computation.</p>
+                    <p class="text-muted mb-0">Manage awards criteria titles, school year scope, GWA cut-off, and excluded subjects for computation.</p>
                   </div>
                   <button id="btnAddCriteria" class="btn btn-primary">Add Criteria</button>
                 </div>
@@ -41,12 +41,13 @@ $navBasePath = '../';
                           <th>No</th>
                           <th>Title</th>
                           <th>School Year</th>
+                          <th>GWA Cut-off</th>
                           <th>Excluded Subjects</th>
                           <th>Actions</th>
                         </tr>
                       </thead>
                       <tbody>
-                        <tr><td colspan="5" class="text-center text-muted">Loading...</td></tr>
+                        <tr><td colspan="6" class="text-center text-muted">Loading...</td></tr>
                       </tbody>
                     </table>
                   </div>
@@ -74,6 +75,11 @@ $navBasePath = '../';
                       <select class="form-control" id="criteriaSchoolYear" name="schoolyear_id" required>
                         <option value="">-- Select School Year --</option>
                       </select>
+                    </div>
+                    <div class="mb-3">
+                      <label for="criteriaGwaCutoff" class="form-label">GWA Cut-off</label>
+                      <input type="number" class="form-control" id="criteriaGwaCutoff" name="gwa_cutoff" step="0.00001" min="0" max="5" placeholder="e.g., 1.75000">
+                      <small class="text-muted">Optional. Use up to 5 decimal places.</small>
                     </div>
                     <div class="mb-3">
                       <label for="criteriaExcludedSubjects" class="form-label">Excluded Subjects from Computation</label>
@@ -113,6 +119,17 @@ $navBasePath = '../';
         return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
       }
 
+      function formatGwaCutoff(value) {
+        if (value === null || value === undefined || value === '') {
+          return '<span class="text-muted">-</span>';
+        }
+        var num = Number(value);
+        if (isNaN(num)) {
+          return '<span class="text-muted">-</span>';
+        }
+        return escapeHtml(num.toFixed(5));
+      }
+
       function showMessage(message, type) {
         var cls = type === 'success' ? 'alert-success' : 'alert-danger';
         $('#criteriaMessage').html('<div class="alert ' + cls + ' mb-0">' + escapeHtml(message) + '</div>');
@@ -134,7 +151,7 @@ $navBasePath = '../';
       function renderTable(data) {
         var tbody = $('#criteriaTable tbody');
         if (!data || !data.length) {
-          tbody.html('<tr><td colspan="5" class="text-center text-muted">No records found.</td></tr>');
+          tbody.html('<tr><td colspan="6" class="text-center text-muted">No records found.</td></tr>');
           return;
         }
 
@@ -143,6 +160,7 @@ $navBasePath = '../';
             '<td>' + (index + 1) + '</td>' +
             '<td><strong>' + escapeHtml(item.title) + '</strong></td>' +
             '<td>' + escapeHtml(item.school_year_label || '—') + '</td>' +
+            '<td>' + formatGwaCutoff(item.gwa_cutoff) + '</td>' +
             '<td>' + (item.excluded_subjects ? escapeHtml(item.excluded_subjects) : '<span class="text-muted">—</span>') + '</td>' +
             '<td>' +
               '<div class="d-flex gap-2 align-items-center">' +
@@ -173,6 +191,7 @@ $navBasePath = '../';
       function resetForm() {
         $('#criteriaId').val('');
         $('#criteriaTitle').val('');
+        $('#criteriaGwaCutoff').val('');
         $('#criteriaExcludedSubjects').val('');
         $('#criteriaMessage').html('');
         loadSchoolYears(null);
@@ -195,6 +214,7 @@ $navBasePath = '../';
               var item = response.data;
               $('#criteriaId').val(item.id);
               $('#criteriaTitle').val(item.title);
+              $('#criteriaGwaCutoff').val(item.gwa_cutoff || '');
               $('#criteriaExcludedSubjects').val(item.excluded_subjects || '');
               loadSchoolYears(item.schoolyear_id);
               $('#criteriaModalLabel').text('Edit Criteria');
@@ -227,6 +247,7 @@ $navBasePath = '../';
             action: id ? 'update' : 'add',
             title: $('#criteriaTitle').val().trim(),
             schoolyear_id: $('#criteriaSchoolYear').val(),
+            gwa_cutoff: $('#criteriaGwaCutoff').val().trim(),
             excluded_subjects: $('#criteriaExcludedSubjects').val().trim()
           };
           if (id) data.id = id;
