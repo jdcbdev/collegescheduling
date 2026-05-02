@@ -321,6 +321,18 @@ if ($programId !== null && $programId > 0) {
 
         .empty-row { text-align: center; color: #666; font-style: italic; }
 
+        .column-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-left: 10px;
+            font-size: 14px;
+        }
+
+        .hide-name-column .name-column {
+            display: none;
+        }
+
         @media print {
             body { background: #fff !important; }
             .no-print { display: none !important; }
@@ -340,9 +352,10 @@ if ($programId !== null && $programId > 0) {
         <button class="btn" onclick="window.print()">🖨️ Print</button>
         <button class="btn" onclick="downloadPDF()">⬇️ Download PDF</button>
         <button class="btn" onclick="window.close()">Close</button>
+        <label class="column-toggle"><input type="checkbox" id="chkNameColumn" checked onchange="toggleNameColumn(this)">Show Student Name Column</label>
     </div>
 
-    <div class="print-container">
+    <div class="print-container" id="printContainer">
         <div class="header">
             <div class="header-main">
                 <div class="header-top">
@@ -365,7 +378,7 @@ if ($programId !== null && $programId > 0) {
             <thead>
                 <tr>
                     <th>No</th>
-                    <th>Student Name</th>
+                    <th class="name-column">Student Name</th>
                     <th>Student No.</th>
                     <th>Program</th>
                     <th>GWA</th>
@@ -378,13 +391,14 @@ if ($programId !== null && $programId > 0) {
                     </tr>
                 <?php else: ?>
                     <?php foreach ($applicants as $idx => $row): ?>
-                        <tr>
-                            <td class="center"><?php echo (int) $idx + 1; ?></td>
-                            <td>
+                        <tr class="applicant-row">
+                            <td class="row-num center"><?php echo (int) $idx + 1; ?></td>
+                            <td class="name-column">
                                 <?php
                                     $name = trim((string)($row['ln'] ?? '') . ', ' . (string)($row['fn'] ?? '') . ' ' . (string)($row['mn'] ?? ''));
-                                    echo htmlspecialchars(strtoupper(preg_replace('/\s+/', ' ', $name)));
+                                    $displayName = strtoupper(preg_replace('/\s+/', ' ', $name));
                                 ?>
+                                <?php echo htmlspecialchars($displayName); ?>
                             </td>
                             <td class="center"><?php echo htmlspecialchars((string)($row['student_no'] ?? '')); ?></td>
                             <td class="center"><?php echo htmlspecialchars((string)($row['program_code'] ?? '')); ?></td>
@@ -411,6 +425,10 @@ if ($programId !== null && $programId > 0) {
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script>
+        function toggleNameColumn(chk) {
+            document.getElementById('printContainer').classList.toggle('hide-name-column', !chk.checked);
+        }
+
         function downloadPDF() {
             const element = document.querySelector('.print-container');
             const docName = 'awards-qualified-<?php echo htmlspecialchars((string)($criteria['title'] ?? 'criteria')); ?>.pdf'.replace(/[^\w\s-]/g, '_');
