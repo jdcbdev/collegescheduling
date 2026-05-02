@@ -2,6 +2,7 @@
 header('Content-Type: application/json; charset=utf-8');
 
 require_once __DIR__ . '/../classes/Applicant.php';
+require_once __DIR__ . '/../classes/AwardCriteria.php';
 
 $action    = isset($_REQUEST['action']) ? trim($_REQUEST['action']) : 'list';
 $applicant = new Applicant();
@@ -22,7 +23,8 @@ switch ($action) {
     case 'list':
         $programId    = isset($_REQUEST['program_id'])    && $_REQUEST['program_id']    !== '' ? (int) $_REQUEST['program_id']    : null;
         $schoolyearId = isset($_REQUEST['schoolyear_id']) && $_REQUEST['schoolyear_id'] !== '' ? (int) $_REQUEST['schoolyear_id'] : null;
-        $data         = $applicant->getAllApplicants($programId, $schoolyearId);
+        $criteriaId   = isset($_REQUEST['criteria_id'])   && $_REQUEST['criteria_id']   !== '' ? (int) $_REQUEST['criteria_id']   : null;
+        $data         = $applicant->getAllApplicants($programId, $schoolyearId, $criteriaId);
         jsonResponse(true, $data);
         break;
 
@@ -52,6 +54,13 @@ switch ($action) {
         jsonResponse(true, $data);
         break;
 
+    case 'criteria':
+        $ac = new AwardCriteria();
+        $activeSyId = $applicant->getActiveSchoolYear();
+        $data = $activeSyId ? $ac->getCriteriaBySchoolYear($activeSyId) : [];
+        jsonResponse(true, $data);
+        break;
+
     case 'schoolyears':
         $data = $applicant->getSchoolYears();
         jsonResponse(true, $data);
@@ -64,13 +73,14 @@ switch ($action) {
         $ln           = isset($_POST['ln'])            ? trim($_POST['ln'])            : '';
         $programId    = isset($_POST['program_id'])    ? (int) $_POST['program_id']    : 0;
         $curriculumId = isset($_POST['curriculum_id']) ? (int) $_POST['curriculum_id'] : 0;
+        $criteriaId   = isset($_POST['criteria_id'])   && $_POST['criteria_id'] !== '' ? (int) $_POST['criteria_id'] : null;
 
         if (empty($studentNo) || empty($fn) || empty($ln) || $programId <= 0 || $curriculumId <= 0) {
             jsonResponse(false, null, 'Please fill in all required fields.');
         }
 
-        if ($applicant->studentNoExists($studentNo)) {
-            jsonResponse(false, null, 'Student number already exists.');
+        if ($applicant->studentNoExists($studentNo, null, $criteriaId)) {
+            jsonResponse(false, null, 'Student number already exists for this criteria.');
         }
 
         $activeSY = $applicant->getActiveSchoolYear();
@@ -83,6 +93,7 @@ switch ($action) {
         $applicant->curriculum_id = $curriculumId;
         $applicant->gwa           = null;
         $applicant->schoolyear_id = $activeSY;
+        $applicant->criteria_id   = $criteriaId;
 
         $result = $applicant->addApplicant();
         if ($result) {
@@ -99,13 +110,14 @@ switch ($action) {
         $ln           = isset($_POST['ln'])            ? trim($_POST['ln'])            : '';
         $programId    = isset($_POST['program_id'])    ? (int) $_POST['program_id']    : 0;
         $curriculumId = isset($_POST['curriculum_id']) ? (int) $_POST['curriculum_id'] : 0;
+        $criteriaId   = isset($_POST['criteria_id'])   && $_POST['criteria_id'] !== '' ? (int) $_POST['criteria_id'] : null;
 
         if ($id <= 0 || empty($studentNo) || empty($fn) || empty($ln) || $programId <= 0 || $curriculumId <= 0) {
             jsonResponse(false, null, 'Please fill in all required fields.');
         }
 
-        if ($applicant->studentNoExists($studentNo, $id)) {
-            jsonResponse(false, null, 'Student number already exists.');
+        if ($applicant->studentNoExists($studentNo, $id, $criteriaId)) {
+            jsonResponse(false, null, 'Student number already exists for this criteria.');
         }
 
         // Preserve existing school year; do not overwrite on update
@@ -120,6 +132,7 @@ switch ($action) {
         $applicant->curriculum_id = $curriculumId;
         $applicant->gwa           = $existing ? $existing['gwa'] : null;
         $applicant->schoolyear_id = $existing ? $existing['schoolyear_id'] : null;
+        $applicant->criteria_id   = $criteriaId;
 
         if ($applicant->updateApplicant()) {
             jsonResponse(true, null, 'Applicant updated successfully.');

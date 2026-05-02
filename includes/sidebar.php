@@ -66,6 +66,12 @@
             <span class="hide-menu">Application</span>
           </a>
         </li>
+        <li class="sidebar-item">
+          <a class="sidebar-link<?= $activePage === 'awards-criteria' ? ' active' : '' ?>" href="<?= htmlspecialchars($navBasePath) ?>application/awards_criteria.php" aria-expanded="false" data-bs-toggle="tooltip" data-bs-placement="right" title="Awards Criteria">
+            <iconify-icon icon="solar:clipboard-check-line-duotone"></iconify-icon>
+            <span class="hide-menu">Criteria</span>
+          </a>
+        </li>
 
         <!-- Users & Enrollment -->
         <li class="nav-small-cap">

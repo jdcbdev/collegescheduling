@@ -13,12 +13,13 @@ class Applicant extends Database {
     public $curriculum_id;
     public $gwa;
     public $schoolyear_id;
+    public $criteria_id;
 
     public function addApplicant() {
         $conn = $this->connect();
 
-        $sql = "INSERT INTO applicants (student_no, fn, mn, ln, program_id, curriculum_id, gwa, schoolyear_id)
-                VALUES (:student_no, :fn, :mn, :ln, :program_id, :curriculum_id, :gwa, :schoolyear_id)";
+        $sql = "INSERT INTO applicants (student_no, fn, mn, ln, program_id, curriculum_id, gwa, schoolyear_id, criteria_id)
+                VALUES (:student_no, :fn, :mn, :ln, :program_id, :curriculum_id, :gwa, :schoolyear_id, :criteria_id)";
 
         $query = $conn->prepare($sql);
         $query->bindParam(':student_no',    $this->student_no);
@@ -29,6 +30,7 @@ class Applicant extends Database {
         $query->bindParam(':curriculum_id', $this->curriculum_id);
         $query->bindParam(':gwa',           $this->gwa);
         $query->bindParam(':schoolyear_id', $this->schoolyear_id);
+        $query->bindParam(':criteria_id',   $this->criteria_id);
 
         if ($query->execute()) {
             return $conn->lastInsertId();
@@ -47,7 +49,8 @@ class Applicant extends Database {
                     program_id    = :program_id,
                     curriculum_id = :curriculum_id,
                     gwa           = :gwa,
-                    schoolyear_id = :schoolyear_id
+                    schoolyear_id = :schoolyear_id,
+                    criteria_id   = :criteria_id
                 WHERE id = :id";
 
         $query = $conn->prepare($sql);
@@ -60,6 +63,7 @@ class Applicant extends Database {
         $query->bindParam(':curriculum_id', $this->curriculum_id);
         $query->bindParam(':gwa',           $this->gwa);
         $query->bindParam(':schoolyear_id', $this->schoolyear_id);
+        $query->bindParam(':criteria_id',   $this->criteria_id);
 
         return $query->execute();
     }
@@ -85,11 +89,13 @@ class Applicant extends Database {
                        CONCAT(sy.start_year, '-', sy.end_year, ' ',
                            CASE sy.semester WHEN 1 THEN '1st Sem' WHEN 2 THEN '2nd Sem' WHEN 3 THEN 'Summer' ELSE CONCAT('Sem ', sy.semester) END
                        ) AS school_year_label,
+                       a.criteria_id, ac.title AS criteria_title,
                        a.created_at
                 FROM applicants a
-                LEFT JOIN programs   p  ON a.program_id    = p.id
-                LEFT JOIN curriculum c  ON a.curriculum_id = c.id
-                LEFT JOIN schoolyear sy ON a.schoolyear_id = sy.id
+                LEFT JOIN programs       p  ON a.program_id    = p.id
+                LEFT JOIN curriculum     c  ON a.curriculum_id = c.id
+                LEFT JOIN schoolyear     sy ON a.schoolyear_id = sy.id
+                LEFT JOIN awards_criteria ac ON a.criteria_id  = ac.id
                 WHERE a.id = :id";
 
         $query = $conn->prepare($sql);
@@ -99,7 +105,7 @@ class Applicant extends Database {
         return $query->fetch(PDO::FETCH_ASSOC);
     }
 
-    public function getAllApplicants($programId = null, $schoolyearId = null) {
+    public function getAllApplicants($programId = null, $schoolyearId = null, $criteriaId = null) {
         $conn = $this->connect();
 
         $sql = "SELECT a.id, a.student_no, a.fn, a.mn, a.ln,
@@ -110,11 +116,13 @@ class Applicant extends Database {
                        CONCAT(sy.start_year, '-', sy.end_year, ' ',
                            CASE sy.semester WHEN 1 THEN '1st Sem' WHEN 2 THEN '2nd Sem' WHEN 3 THEN 'Summer' ELSE CONCAT('Sem ', sy.semester) END
                        ) AS school_year_label,
+                       a.criteria_id, ac.title AS criteria_title,
                        a.created_at
                 FROM applicants a
-                LEFT JOIN programs   p  ON a.program_id    = p.id
-                LEFT JOIN curriculum c  ON a.curriculum_id = c.id
-                LEFT JOIN schoolyear sy ON a.schoolyear_id = sy.id";
+                LEFT JOIN programs       p  ON a.program_id    = p.id
+                LEFT JOIN curriculum     c  ON a.curriculum_id = c.id
+                LEFT JOIN schoolyear     sy ON a.schoolyear_id = sy.id
+                LEFT JOIN awards_criteria ac ON a.criteria_id  = ac.id";
 
         $conditions = [];
         $params = [];
@@ -125,6 +133,10 @@ class Applicant extends Database {
         if ($schoolyearId) {
             $conditions[] = "a.schoolyear_id = :schoolyear_id";
             $params[':schoolyear_id'] = (int) $schoolyearId;
+        }
+        if ($criteriaId) {
+            $conditions[] = "a.criteria_id = :criteria_id";
+            $params[':criteria_id'] = (int) $criteriaId;
         }
         if ($conditions) {
             $sql .= " WHERE " . implode(' AND ', $conditions);
@@ -141,16 +153,22 @@ class Applicant extends Database {
         return $query->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function studentNoExists($studentNo, $excludeId = null) {
+    public function studentNoExists($studentNo, $excludeId = null, $criteriaId = null) {
         $conn = $this->connect();
 
-        $sql = "SELECT COUNT(*) FROM applicants WHERE student_no = :student_no";
+        // Uniqueness is scoped per criteria; if no criteria, no duplicate check
+        if (!$criteriaId) {
+            return false;
+        }
+
+        $sql = "SELECT COUNT(*) FROM applicants WHERE student_no = :student_no AND criteria_id = :criteria_id";
         if ($excludeId) {
             $sql .= " AND id != :id";
         }
 
         $query = $conn->prepare($sql);
         $query->bindParam(':student_no', $studentNo);
+        $query->bindValue(':criteria_id', (int) $criteriaId, PDO::PARAM_INT);
         if ($excludeId) {
             $query->bindParam(':id', $excludeId, PDO::PARAM_INT);
         }
