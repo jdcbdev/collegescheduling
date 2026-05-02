@@ -152,7 +152,7 @@ foreach ($officials as $o) {
   <?php require_once __DIR__ . '/../includes/footer.php'; ?>
   <script>
     (function ($) {
-      var endpoint = './awards_actions.php';
+      var endpoint       = './awards_actions.php';
 
       function escapeHtml(text) {
         if (text === null || text === undefined) return '';
@@ -231,7 +231,9 @@ foreach ($officials as $o) {
             '</td>' +
             '<td>' + (item.curriculum_years ? escapeHtml(item.curriculum_years) : '—') + '</td>' +
             '<td>' + syDisplay + '</td>' +
-            '<td>' + (item.gwa ? escapeHtml(item.gwa) : '<span class="text-muted fst-italic">Not computed</span>') + '</td>' +
+            '<td><a href="./applicant_grades.php?id=' + item.id + '" class="fw-semibold">' +
+              (item.gwa ? escapeHtml(item.gwa) : '<span class="text-muted fst-italic">Not computed</span>') +
+            '</a></td>' +
             '<td>' +
               '<div class="d-flex gap-2 align-items-center">' +
                 '<button type="button" class="btn btn-sm btn-outline-primary btn-edit-applicant" data-id="' + item.id + '">Edit</button>' +
