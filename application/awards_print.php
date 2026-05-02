@@ -364,11 +364,11 @@ if ($programId !== null && $programId > 0) {
         <table>
             <thead>
                 <tr>
-                    <th style="width: 50px;">No</th>
+                    <th>No</th>
                     <th>Student Name</th>
-                    <th style="width: 140px;">Student No.</th>
-                    <th style="width: 90px;">Program</th>
-                    <th style="width: 90px;">GWA</th>
+                    <th>Student No.</th>
+                    <th>Program</th>
+                    <th>GWA</th>
                 </tr>
             </thead>
             <tbody>
