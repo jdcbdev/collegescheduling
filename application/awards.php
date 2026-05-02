@@ -55,6 +55,9 @@ foreach ($officials as $o) {
                           <option value="">-- All Programs --</option>
                         </select>
                       </div>
+                      <button id="btnPrintQualified" type="button" class="btn btn-outline-secondary" title="Print Qualified Applicants">
+                        <i class="ti ti-printer"></i>
+                      </button>
                       <button id="btnAddApplicant" class="btn btn-primary">Add Applicant</button>
                     </div>
                   </div>
@@ -374,6 +377,25 @@ foreach ($officials as $o) {
       /* ---------- Event: Filter change ---------- */
       $('#filterProgram, #filterSchoolYear').on('change', function () {
         loadAllTabs();
+      });
+
+      /* ---------- Event: Print qualified ---------- */
+      $('#btnPrintQualified').on('click', function () {
+        if (!activeCriteriaId) {
+          alert('Please select a criteria tab first.');
+          return;
+        }
+
+        var params = new URLSearchParams();
+        params.set('criteria_id', activeCriteriaId);
+
+        var programId = $('#filterProgram').val();
+        var schoolyearId = $('#filterSchoolYear').val();
+        if (programId) params.set('program_id', programId);
+        if (schoolyearId) params.set('schoolyear_id', schoolyearId);
+
+        var printUrl = './awards_print.php?' + params.toString();
+        window.open(printUrl, 'awards_print', 'width=1280,height=900,noopener,noreferrer');
       });
 
       /* ---------- Event: Add button ---------- */
