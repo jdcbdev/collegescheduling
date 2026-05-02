@@ -20,15 +20,17 @@ switch ($action) {
     case 'get_subjects':
         $applicantId  = isset($_REQUEST['applicant_id'])  ? (int) $_REQUEST['applicant_id']  : 0;
         $curriculumId = isset($_REQUEST['curriculum_id']) ? (int) $_REQUEST['curriculum_id'] : 0;
+        $criteriaId   = isset($_REQUEST['criteria_id'])   && $_REQUEST['criteria_id'] !== '' ? (int) $_REQUEST['criteria_id'] : null;
         if (!$applicantId || !$curriculumId) {
             jsonResponse(false, null, 'Invalid parameters.');
         }
-        $data = $gradeObj->getSubjectsWithGrades($applicantId, $curriculumId);
+        $data = $gradeObj->getSubjectsWithGrades($applicantId, $curriculumId, $criteriaId);
         jsonResponse(true, $data);
         break;
 
     case 'save':
         $applicantId = isset($_POST['applicant_id']) ? (int) $_POST['applicant_id'] : 0;
+        $criteriaId  = isset($_POST['criteria_id'])  && $_POST['criteria_id'] !== '' ? (int) $_POST['criteria_id'] : null;
         $subjects    = isset($_POST['subjects'])     ? $_POST['subjects']            : [];
 
         if (!$applicantId) {
@@ -47,7 +49,7 @@ switch ($action) {
             jsonResponse(false, null, $e->getMessage());
         }
 
-        $gwa = $gradeObj->computeAndSaveGWA($applicantId);
+        $gwa = $gradeObj->computeAndSaveGWA($applicantId, $criteriaId);
         jsonResponse(true, ['gwa' => $gwa], 'Grades saved successfully.');
         break;
 

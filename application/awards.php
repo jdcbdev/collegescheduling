@@ -249,7 +249,7 @@ foreach ($officials as $o) {
               : '<span class="badge bg-secondary text-white">Unassigned</span>') + '</td>' +
             '<td>' + (item.curriculum_years ? escapeHtml(item.curriculum_years) : '—') + '</td>' +
             '<td>' + syDisplay + '</td>' +
-            '<td><a href="./applicant_grades.php?id=' + item.id + '" class="fw-semibold">' +
+            '<td><a href="./applicant_grades.php?id=' + item.id + '&criteria_id=' + (item.criteria_id || '') + '" class="fw-semibold">' +
               (item.gwa ? escapeHtml(item.gwa) : '<span class="text-muted fst-italic">Not computed</span>') +
             '</a></td>' +
             '<td><div class="d-flex gap-2 align-items-center">' +

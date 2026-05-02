@@ -5,6 +5,7 @@ $assetBasePath = '../assets';
 $navBasePath = '../';
 
 require_once __DIR__ . '/../classes/Applicant.php';
+require_once __DIR__ . '/../classes/AwardCriteria.php';
 
 $applicantId = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 if ($applicantId <= 0) {
@@ -15,6 +16,14 @@ $appObj = new Applicant();
 $applicant = $appObj->getApplicantById($applicantId);
 if (!$applicant) {
     die('Applicant not found');
+}
+
+$criteriaId = isset($_GET['criteria_id']) ? (int) $_GET['criteria_id'] : (int) ($applicant['criteria_id'] ?? 0);
+$criteriaTitle = '';
+if ($criteriaId) {
+    $acObj = new AwardCriteria();
+    $cInfo = $acObj->getCriteriaById($criteriaId);
+    $criteriaTitle = $cInfo ? $cInfo['title'] : '';
 }
 ?>
 <?php require_once __DIR__ . '/../includes/header.php'; ?>
@@ -38,7 +47,7 @@ if (!$applicant) {
                       <h5 class="card-title mb-1">Applicant Grades</h5>
                       <p class="text-muted mb-0">
                         <strong><?php echo htmlspecialchars($applicant['ln'] . ', ' . $applicant['fn'] . ($applicant['mn'] ? ' ' . $applicant['mn'] : '')); ?></strong><br>
-                        <?php echo htmlspecialchars($applicant['student_no']); ?> • <?php echo htmlspecialchars($applicant['program_code'] ?: 'N/A'); ?> • Curriculum <?php echo htmlspecialchars($applicant['curriculum_years'] ?: 'N/A'); ?>
+                        <?php echo htmlspecialchars($applicant['student_no']); ?> &bull; <?php echo htmlspecialchars($applicant['program_code'] ?: 'N/A'); ?> &bull; Curriculum <?php echo htmlspecialchars($applicant['curriculum_years'] ?: 'N/A'); ?><?php echo $criteriaTitle ? ' &bull; <strong>' . htmlspecialchars($criteriaTitle) . '</strong>' : ''; ?>
                       </p>
                     </div>
                     <div class="d-flex align-items-center justify-content-end gap-2 flex-wrap">
@@ -72,6 +81,7 @@ if (!$applicant) {
     (function ($) {
       var applicantId  = <?php echo (int) $applicantId; ?>;
       var curriculumId = <?php echo (int) $applicant['curriculum_id']; ?>;
+      var criteriaId   = <?php echo (int) $criteriaId; ?>;
       var endpoint     = './grades_actions.php';
 
       function escapeHtml(text) {
@@ -103,9 +113,12 @@ if (!$applicant) {
       function format2(num) {
         return (Math.round(num * 100) / 100).toFixed(2);
       }
+      function format5(num) {
+        return parseFloat(num.toFixed(5)).toFixed(5);
+      }
 
       function loadSubjects() {
-        $.getJSON(endpoint, { action: 'get_subjects', applicant_id: applicantId, curriculum_id: curriculumId })
+        $.getJSON(endpoint, { action: 'get_subjects', applicant_id: applicantId, curriculum_id: curriculumId, criteria_id: criteriaId || '' })
           .done(function (response) {
             if (response.success) {
               renderSubjects(response.data || []);
@@ -175,13 +188,14 @@ if (!$applicant) {
             subjects.forEach(function (s) {
               var gradeVal = s.grade ? escapeHtml(s.grade) : '';
               var unitsNum = Number(s.total_credits) || 0;
+              var effectiveUnits = s.excluded_from_gwa ? 0 : unitsNum;
               var gradeNum = parseNumericGrade(s.grade);
-              var weighted = gradeNum !== null ? (unitsNum * gradeNum) : null;
-              shtml += '<tr>';
+              var weighted = (gradeNum !== null && effectiveUnits > 0) ? (effectiveUnits * gradeNum) : null;
+              shtml += '<tr' + (s.excluded_from_gwa ? ' class="table-secondary"' : '') + '>';
               shtml += '<td><strong>' + escapeHtml(s.subject_code) + '</strong></td>';
-              shtml += '<td>' + escapeHtml(s.subject_name) + '</td>';
+              shtml += '<td>' + escapeHtml(s.subject_name) + (s.excluded_from_gwa ? ' <span class="badge bg-secondary ms-1" style="font-size:10px;">excl.</span>' : '') + '</td>';
               shtml += '<td class="text-center">' + escapeHtml(s.total_credits) + '</td>';
-              shtml += '<td><input type="text" class="form-control form-control-sm grade-input" style="max-width:110px;" name="subjects[' + s.subject_id + '][grade]" value="' + gradeVal + '" data-subject-id="' + s.subject_id + '" data-units="' + escapeHtml(s.total_credits) + '"></td>';
+              shtml += '<td><input type="text" class="form-control form-control-sm grade-input" style="max-width:110px;" name="subjects[' + s.subject_id + '][grade]" value="' + gradeVal + '" data-subject-id="' + s.subject_id + '" data-units="' + unitsNum + '" data-effective-units="' + effectiveUnits + '"></td>';
               shtml += '<td class="text-center units-x-gwa-cell">' + (weighted !== null ? '<strong>' + format2(weighted) + '</strong>' : '—') + '</td>';
               shtml += '</tr>';
             });
@@ -218,13 +232,14 @@ if (!$applicant) {
             sem3Subjects.forEach(function (s) {
               var gradeVal = s.grade ? escapeHtml(s.grade) : '';
               var unitsNum = Number(s.total_credits) || 0;
+              var effectiveUnits = s.excluded_from_gwa ? 0 : unitsNum;
               var gradeNum = parseNumericGrade(s.grade);
-              var weighted = gradeNum !== null ? (unitsNum * gradeNum) : null;
-              html += '<tr>';
+              var weighted = (gradeNum !== null && effectiveUnits > 0) ? (effectiveUnits * gradeNum) : null;
+              html += '<tr' + (s.excluded_from_gwa ? ' class="table-secondary"' : '') + '>';
               html += '<td><strong>' + escapeHtml(s.subject_code) + '</strong></td>';
-              html += '<td>' + escapeHtml(s.subject_name) + '</td>';
+              html += '<td>' + escapeHtml(s.subject_name) + (s.excluded_from_gwa ? ' <span class="badge bg-secondary ms-1" style="font-size:10px;">excl.</span>' : '') + '</td>';
               html += '<td class="text-center">' + escapeHtml(s.total_credits) + '</td>';
-              html += '<td><input type="text" class="form-control form-control-sm grade-input" style="max-width:110px;" name="subjects[' + s.subject_id + '][grade]" value="' + gradeVal + '" data-subject-id="' + s.subject_id + '" data-units="' + escapeHtml(s.total_credits) + '"></td>';
+              html += '<td><input type="text" class="form-control form-control-sm grade-input" style="max-width:110px;" name="subjects[' + s.subject_id + '][grade]" value="' + gradeVal + '" data-subject-id="' + s.subject_id + '" data-units="' + unitsNum + '" data-effective-units="' + effectiveUnits + '"></td>';
               html += '<td class="text-center units-x-gwa-cell">' + (weighted !== null ? '<strong>' + format2(weighted) + '</strong>' : '—') + '</td>';
               html += '</tr>';
             });
@@ -257,20 +272,21 @@ if (!$applicant) {
 
           table.find('.grade-input').each(function () {
             var input = $(this);
-            var units = Number(input.data('units')) || 0;
+            var effectiveUnits = parseFloat(input.data('effective-units'));
+            if (isNaN(effectiveUnits)) effectiveUnits = Number(input.data('units')) || 0;
             var gradeNum = parseNumericGrade(input.val());
             var cell = input.closest('tr').find('.units-x-gwa-cell');
 
-            subtotalUnits += units;
-            grandUnits += units;
+            subtotalUnits += effectiveUnits;
+            grandUnits += effectiveUnits;
 
-            if (gradeNum !== null) {
-              var weighted = units * gradeNum;
+            if (gradeNum !== null && effectiveUnits > 0) {
+              var weighted = effectiveUnits * gradeNum;
               subtotalWeighted += weighted;
               grandWeighted += weighted;
               cell.html('<strong>' + format2(weighted) + '</strong>');
             } else {
-              cell.text('—');
+              cell.html('<span class="text-muted">—</span>');
             }
           });
 
@@ -282,7 +298,7 @@ if (!$applicant) {
         var summaryHtml =
           '<span class="badge bg-light-primary text-primary me-2">Total Units: ' + grandUnits + '</span>' +
           '<span class="badge bg-light-info text-info me-2">Total Units x GWA: ' + format2(grandWeighted) + '</span>' +
-          '<span class="badge bg-light-success text-success">Computed GWA: ' + (gwaComputed !== null ? format2(gwaComputed) : 'Not computed') + '</span>';
+          '<span class="badge bg-light-success text-success">Computed GWA: ' + (gwaComputed !== null ? format5(gwaComputed) : 'Not computed') + '</span>';
 
         $('#overallSummary').html(summaryHtml);
         $('#overallSummaryBottom').html(summaryHtml);
@@ -346,6 +362,7 @@ if (!$applicant) {
         var payload = $('#gradesForm').serializeArray();
         payload.push({ name: 'action', value: 'save' });
         payload.push({ name: 'applicant_id', value: applicantId });
+        payload.push({ name: 'criteria_id', value: criteriaId || '' });
 
         var btn = $('#btnSaveAll').prop('disabled', true).text('Saving...');
         $.post(endpoint, $.param(payload))
